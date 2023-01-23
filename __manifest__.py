@@ -15,6 +15,10 @@
 
         'views/sale_order_views.xml',
         'views/sale.xml',
+
+        'report/ir_actions_report_templates.xml',
+        'report/sale_proposal_report.xml',
+
     ],
     'demo': [],
     'sequence': -300,

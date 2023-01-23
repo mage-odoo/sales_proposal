@@ -1,4 +1,5 @@
 from odoo import models, fields, api, _
+from odoo.tools import float_is_zero, format_amount, format_date
 
 
 class SaleProposal(models.Model):
@@ -151,6 +152,15 @@ class SaleProposal(models.Model):
     # source_id = fields.Many2one(ondelete='set null')
     show_update_pricelist = fields.Boolean(
         string="Has Pricelist Changed", store=False)  # True if the pricelist was changed
+    type_name = fields.Char(string="Type Name", compute='_compute_type_name')
+
+    @api.depends('state')
+    def _compute_type_name(self):
+        for record in self:
+            if record.state in ('draft', 'sent', 'cancel'):
+                record.type_name = _("Quotation")
+            else:
+                record.type_name = _("Sales Order")
 
     @ api.depends('order_line.customer_lead', 'date_order', 'state')
     def _compute_expected_date(self):
@@ -320,20 +330,18 @@ class SaleProposal(models.Model):
             order.fiscal_position_id = cache[key]
 
     def send_proposal_mail(self):
-        pass
+        self.ensure_one()
+        report = 'sales_proposal.sale_proposal_report_pdf_report'
+        pdf_bin, unused_filetype = self.env['ir.actions.report'].with_context(
+            snailmail_layout=not self.id, partner_invoice_id=self.id, partner_id=self.id, lang='en_US')._render_qweb_pdf(report, self.id)
+        print(pdf_bin)
+        print(unused_filetype)
+        # print("function called  send_proposal_mail")
 
     def sale_proposal_confirm(self):
         print("function called  ")
 
     def action_preview_sale_proposal(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_url',
-            'target': 'self',
-            'url': self.get_portal_url(),
-        }
-
-    def action_proposal_send(self):
         """ Opens a wizard to compose an email, with relevant mail template loaded by default """
         self.ensure_one()
         self.order_line._validate_analytic_distribution()
@@ -348,10 +356,13 @@ class SaleProposal(models.Model):
             'default_template_id': mail_template.id if mail_template else None,
             'default_composition_mode': 'comment',
             'mark_so_as_sent': True,
+            'Attach': self.send_proposal_mail(),
             'default_email_layout_xmlid': 'mail.mail_notification_layout_with_responsible_signature',
             'proforma': self.env.context.get('proforma', False),
             'force_email': True,
-            'model_description': self.with_context(lang=lang),
+            'body_html': 'self.send_proposal_mail()',
+            'model_description': self.with_context(lang=lang).type_name,
+
         }
         return {
             'type': 'ir.actions.act_window',
