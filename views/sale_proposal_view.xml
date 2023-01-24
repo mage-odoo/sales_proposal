@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="sale_proposal_view_form" model="ir.ui.view">
+        <field name="name">sale.proposal.view.form</field>
+        <field name="model">sale.proposal</field>
+        <field name="arch" type="xml">
+            <form string="Proposal">
+                <header>
+                    <button name="action_preview_sale_proposal" string="Send by Email" type="object" class="btn-primary" data-hotkey="g" context="{'validate_analytic': True}" />
+                    <button name="sale_proposal_confirm" data-hotkey="v" string="Confirm" class="btn-primary" type="object" context="{'validate_analytic': True}" attrs="{'invisible': [('state', 'not in', ['confirm'])]}" />
+                    <field name="state" widget="statusbar"></field>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="send_proposal_mail" type="object" class="oe_stat_button" icon="fa-globe icon">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Customer</span>
+                                <span class="o_stat_text">Preview</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <field name="company_id" invisible="1"></field>
+                        <field name="state" readonly="1"></field>
+                        <h1>
+                            <field name="name" readonly="1" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group name="basic_information">
+                                <field name="partner_id" widget="res_partner_many2one" context="{'res_partner_search_mode': 'customer', 'show_address': 1, 'show_vat': True}"/>
+                                <field name="partner_address" string=""></field>
+                                <field name="sale_order_template_id"></field> 
+                        </group>
+                        <group name="dat_paymentterm">
+                            <field name="validity_date"></field>
+                            <field name="date_order"></field>
+                            <field name="payment_term_id"></field>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Order Lines" name="order_lines">
+                            <field name="proposal_line"
+                            widget="section_and_note_one2many">
+                            <tree editable="bottom">
+                                <control>
+                                    <create name="add_product_control" string="Add a product" />
+                                    <create name="add_section_control" string="Add a section" context="{'default_display_type': 'line_section'}" />
+                                    <create name="add_note_control" string="Add a note" context="{'default_display_type': 'line_note'}" />
+                                </control>
+                                <field name="sequence" widget="handle" />
+                                <field name="product_id" widget="sol_product_many2one" ></field>
+                                <field name="product_templaet_id" optional="hide"></field>
+                                <field name="name"></field>
+                                <field name="product_uom_qty"></field>
+                                <field name="price_unit"></field>
+                                <field name="price_subtotal"></field>
+                            </tree>
+                            </field>
+                        </page>
+                        <page string="Other Info" name="other_information">
+                            <group>
+                                <group name="sales_person" string="Sales">
+                                    <field name="user_id" widget="many2one_avatar_user" />
+                                    <field name="team_id" kanban_view_ref="%(sales_team.crm_team_view_kanban)s"  />
+                                    <field name="company_id" />
+                                    <label for="require_signature" string="Online confirmation" />
+                                    <div>
+                                        <field name="require_signature" class="oe_inline" />
+                                        <span>Signature</span>
+                                        <field name="require_payment" class="oe_inline ms-3" />
+                                        <span>Payment</span>
+                                    </div>
+                                    <field name="client_proposal_ref" />
+                                    <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
+                                </group>
+                                <group name="sale_info" string="Invoicing and Payments">
+                                    <label for="fiscal_position_id" />
+                                    <div class="o_row">
+                                        <field name="fiscal_position_id" options="{'no_create': True}" />
+                                    </div>
+                                </group>
+                            </group>
+                            <group>
+                                <group name="sale_shipping">
+                                    <label for="commitment_date" string="Delivery Date"/>
+                                    <div name="commitment_date_div" class="o_row">
+                                        <field name="commitment_date"/>
+                                    </div>
+                                </group>
+                                <group string="Tracking" name="sale_reporting">
+                                    <group name="technical" colspan="2" class="mb-0">
+                                        <field name="origin"/>
+                                    </group>
+                                    <group name="utm_link" colspan="2" class="mt-0">
+                                        <field name="campaign_id"/>
+                                        <field name="medium_id"/>
+                                        <field name="source_id"/>
+                                    </group>
+                                </group>
+                            </group>
+                        </page>
+                        <page groups="base.group_no_one" string="Customer Signature" name="customer_signature" attrs="{'invisible': [('require_signature', '=', False), ('signed_by', '=', False), ('signature', '=', False), ('signed_on', '=', False)]}">
+                            <group>
+                                <field name="signed_by"/>
+                                <field name="signed_on"/>
+                                <field name="signature" widget="image"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="sale_proposal_view_tree" model="ir.ui.view">
+        <field name="name">sale.proposal.view.tree</field>
+        <field name="model">sale.proposal</field>
+        <field name="arch" type="xml">
+            <tree string="Proposal">
+                <field name="name"></field>
+                <field name="state" widget="badge"
+                decoration-info="state == 'draft' or state == 'send'"
+                decoration-success="state == 'confirm'"></field>
+            </tree>
+        </field>
+    </record>
+    <record id="sale_proposal_action" model="ir.actions.act_window">
+        <field name="name">Proposal</field>
+        <field name="res_model">sale.proposal</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[]</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new Proposal,for new Customer
+                </p><p>
+                Once the Proposal is confirmed by the customer, it becomes a Quotation.<br/> and after got Sale Order
+                <br/> You will be able to create an invoice and collect the payment.
+                </p>
+        </field>
+    </record>
+
+</odoo>
