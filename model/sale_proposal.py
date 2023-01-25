@@ -95,6 +95,7 @@ class SaleProposal(models.Model):
         string="Signed By", copy=False)
     signed_on = fields.Datetime(
         string="Signed On", copy=False)
+    amount_total = fields.Float('Amount Total', default="0.0")
 
     @api.depends('partner_id', 'company_id')
     def _compute_fiscal_position_id(self):
@@ -168,12 +169,18 @@ class SaleProposal(models.Model):
     def send_proposal_mail(self):
         pass
 
+    # def _compute_access_url(self):
+    #     super()._compute_access_url()
+    #     for order in self:
+    #         print("_compute_access_url")
+    #         print(order.id)
+    #         order.access_url = f'/my/orders/{order.id}'
+
+    # portal.mixin override
     def _compute_access_url(self):
         super()._compute_access_url()
-        for order in self:
-            print("_compute_access_url")
-            print(order.id)
-            order.access_url = f'/my/orders/{order.id}'
+        for proposal in self:
+            proposal.access_url = f'/my/proposal/{proposal.id}'
 
     def action_preview_sale_proposal(self):
         self.ensure_one()
@@ -191,3 +198,20 @@ class SaleProposal(models.Model):
 
     def sale_proposal_confirm(self):
         pass
+
+    def _get_proposal_lines_to_report(self):
+        print("self value ", self)
+        _lines = self.proposal_line_ids.search([])
+        # filtered(lambda line:and not line._get_downpayment_state())
+
+        # def show_line(line):
+        #     if not line.is_downpayment:
+        #         return True
+        #     elif line.display_type and down_payment_lines:
+        #         return True  # Only show the down payment section if down payments were posted
+        #     elif line in down_payment_lines:
+        #         return True  # Only show posted down payments
+        #     else:
+        #         return False
+        print("_get_proposal_lines_to_report from sale proposal", _lines)
+        return _lines
