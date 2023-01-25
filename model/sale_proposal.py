@@ -4,24 +4,29 @@ from odoo import models, fields, api, _
 class SaleProposal(models.Model):
     _name = 'sale.proposal'
     _description = 'Sales Proposal Model same as sale order model'
-    _inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin', 'utm.mixin']
+    _inherit = ['portal.mixin', 'mail.thread',
+                'mail.activity.mixin', 'utm.mixin']
 
-    name = fields.Char(readonly=True,required=True,index=True,copy=False,
-        default=lambda self: _('New'))
-    company_id = fields.Many2one('res.company', string='company',required=True,default=lambda self: self.env.company)
-    date_order = fields.Datetime(string='Order Date',required=True,default=fields.Datetime.now)
+    name = fields.Char(readonly=True, required=True, index=True, copy=False,
+                       default=lambda self: _('New'))
+    company_id = fields.Many2one(
+        'res.company', string='company', required=True, default=lambda self: self.env.company)
+    date_order = fields.Datetime(
+        string='Order Date', required=True, default=fields.Datetime.now)
     partner_id = fields.Many2one('res.partner', string='Customer')
-    partner_address = fields.Char('Partner Address',related='partner_id.contact_address_complete')
+    partner_address = fields.Char(
+        'Partner Address', related='partner_id.contact_address_complete')
     pricelist_id = fields.Many2one('product.pricelist', string='Pricelist')
-    sale_order_template_id=fields.Many2one('sale.order.template','Proposal Template')
+    sale_order_template_id = fields.Many2one(
+        'sale.order.template', 'Proposal Template')
     state = fields.Selection(
         selection=[
             ('draft', "Draft"),
             ('send', "Send"),
             ('confirm', "Confirm"),
         ],
-        string="Status",required=True,
-        copy=False,tracking=3,
+        string="Status", required=True,
+        copy=False, tracking=3,
         default='draft')
     validity_date = fields.Date(
         string="Expiration",
@@ -32,7 +37,7 @@ class SaleProposal(models.Model):
         compute='_compute_payment_term_id',
         store=True, readonly=False,
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
-    proposal_line = fields.One2many(
+    proposal_line_ids = fields.One2many(
         comodel_name='sale.proposal.line',
         inverse_name='proposal_id',
         string="Proposal Lines",
@@ -66,7 +71,7 @@ class SaleProposal(models.Model):
         compute='_compute_fiscal_position_id',
         store=True, readonly=False, precompute=True, check_company=True,
         help="Fiscal positions are used to adapt taxes and accounts for particular customers or sales orders/invoices."
-            "The default value comes from the customer.",
+        "The default value comes from the customer.",
         domain="[('company_id', '=', company_id)]")
     tag_ids = fields.Many2many(
         comodel_name='crm.tag',
@@ -75,8 +80,8 @@ class SaleProposal(models.Model):
     commitment_date = fields.Datetime(
         string="Delivery Date", copy=False,
         help="This is the delivery date promised to the customer. "
-            "If set, the delivery order will be scheduled based on "
-            "this date rather than product lead times.")
+        "If set, the delivery order will be scheduled based on "
+        "this date rather than product lead times.")
     origin = fields.Char(
         string="Source Document",
         help="Reference of the document that generated this sales order request")
@@ -118,12 +123,13 @@ class SaleProposal(models.Model):
         for order in self:
             order.require_payment = order.company_id.portal_confirmation_pay
 
-    #dose any method call other model comute method
+    # dose any method call other model comute method
     @api.depends('partner_id', 'user_id')
     def _compute_team_id(self):
         cached_teams = {}
         for order in self:
-            default_team_id = self.env.context.get('default_team_id', False) or order.team_id.id or order.partner_id.team_id.id
+            default_team_id = self.env.context.get(
+                'default_team_id', False) or order.team_id.id or order.partner_id.team_id.id
             user_id = order.user_id.id
             company_id = order.company_id.id
             key = (default_team_id, user_id, company_id)
@@ -161,9 +167,27 @@ class SaleProposal(models.Model):
 
     def send_proposal_mail(self):
         pass
-    
+
+    def _compute_access_url(self):
+        super()._compute_access_url()
+        for order in self:
+            print("_compute_access_url")
+            print(order.id)
+            order.access_url = f'/my/orders/{order.id}'
+
     def action_preview_sale_proposal(self):
-        pass
+        self.ensure_one()
+        print(self.get_portal_url())
+        return {
+            'type': 'ir.actions.act_url',
+            'target': 'self',
+            'url': self.get_portal_url(),
+        }
+        # report = 'sales_proposal.sale_proposal_report_pdf_report'
+        # pdf_bin, unused_filetype = self.env['ir.actions.report'].with_context(
+        #     snailmail_layout=not self.id, partner_invoice_id=self.id, partner_id=self.id, lang='en_US')._render_qweb_pdf(report, self.id)
+        # print(pdf_bin)
+        # print(unused_filetype)
 
     def sale_proposal_confirm(self):
         pass

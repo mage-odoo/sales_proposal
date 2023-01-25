@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- outer call link -->
+    <template id="portal_my_home_menu_sale_proposal" name="Portal layout : sales menu entries" inherit_id="portal.portal_breadcrumbs" priority="10">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'proposal' or sale_proposal and sale_proposal.state in ('send', 'confirm','draft')" t-attf-class="breadcrumb-item #{'active ' if not sale_order else ''}">
+                <a t-if="sale_proposal" t-attf-href="/my/proposal?{{ keep_query() }}">Proposal</a>
+            </li>
+        </xpath>
+    </template>
+
+    <!-- innner link  full cantrol on /my/home-->
+    <template id="portal_my_home_sale_proposal" name="Show Quotations / Sales Orders" customize_show="True" inherit_id="portal.portal_my_home" priority="10">
+        <xpath expr="//div[hasclass('o_portal_docs')]/div" position="before">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Proposal</t>
+                <t t-set="url" t-value="'/my/proposal'" />
+                <t t-set="placeholder_count" t-value="'proposal_count'" />
+            </t>
+        </xpath>
+    </template>
+</odoo>
