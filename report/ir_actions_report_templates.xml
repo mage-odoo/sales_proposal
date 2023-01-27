@@ -13,29 +13,26 @@
                 </p>
             </t>
 
-            <t t-set="information_block">
+            <!-- <t t-set="information_block">
                 <strong>
                         Customer Address:
                 </strong>
                 <div t-field="doc.partner_address" />
-            </t>
+            </t> -->
             <div class="page">
                 <div class="oe_structure" />
 
                 <h2 class="mt-4">
-                    <span t-if="env.context.get('proforma', False) or is_pro_forma">Pro-Forma Invoice # </span>
-                    <span t-elif="doc.state in ['draft','send','confirm']">Proposal # </span>
-                    <span t-else="">Order # </span>
+                    <span t-if="doc.state in ['draft','send','confirm']">Proposal # </span>
                     <span t-field="doc.name" />
                 </h2>
 
                 <div class="row mt-4 mb-4" id="informations">
                     <div t-if="doc.date_order" class="col-auto col-3 mw-100 mb-2" name="informations_date">
-                        <strong t-if="doc.state in ['draft', 'sent']">Proposal Date:</strong>
-                        <strong t-else="">Proposal Date:</strong>
+                        <strong>Proposal Date:</strong>
                         <p class="m-0" t-field="doc.date_order" t-options='{"widget": "date"}' />
                     </div>
-                    <div t-if="doc.validity_date and doc.state in ['draft', 'sent']" class="col-auto col-3 mw-100 mb-2" name="expiration_date">
+                    <div t-if="doc.validity_date" class="col-auto col-3 mw-100 mb-2" name="expiration_date">
                         <strong>Expiration:</strong>
                         <p class="m-0" t-field="doc.validity_date" />
                     </div>
@@ -45,9 +42,6 @@
                     </div>
                 </div>
 
-                <!-- Is there a discount on at least one line?
-                <t t-set="lines_to_report" t-value="doc._get_order_lines_to_report()" />
-                <t t-set="display_discount" t-value="any(l.discount for l in lines_to_report)" /> -->
 
                 <table class="table table-sm o_main_table mt-4">
                     <!-- In case we want to repeat the header, remove "display: table-row-group" -->
@@ -59,7 +53,6 @@
                             <!-- <th name="th_discount" t-if="display_discount" class="text-end" groups="product.group_discount_per_so_line">
                                 <span>Disc.%</span>
                             </th> -->
-                            <th name="th_taxes" class="text-end">Taxes</th>
                             <th name="th_subtotal" class="text-end">
                                 <span groups="account.group_show_line_subtotals_tax_excluded">Amount</span>
                                 <span groups="account.group_show_line_subtotals_tax_included">Total Price</span>
@@ -69,13 +62,13 @@
                     <tbody class="sale_tbody">
 
                         <t t-set="current_subtotal" t-value="0" />
+                        <t t-set="lines_to_report" t-value="doc.proposal_line_ids" />
 
                         <t t-foreach="lines_to_report" t-as="line">
-
                             <t t-set="current_subtotal" t-value="current_subtotal + line.price_subtotal" groups="account.group_show_line_subtotals_tax_excluded" />
                             <!-- <t t-set="current_subtotal" t-value="current_subtotal + line.price_total" groups="account.group_show_line_subtotals_tax_included" /> -->
 
-                            <tr t-att-class="'bg-200 fw-bold o_line_section' if line.display_type == 'line_section' else 'fst-italic o_line_note' if line.display_type == 'line_note' else ''">
+                            <tr t-att-class="'bg-200 fw-bold o_line_section'">
 
                                 <td name="td_name">
                                     <span t-field="line.name" />
@@ -85,6 +78,9 @@
                                 </td>
                                 <td name="td_priceunit" class="text-end">
                                     <span t-field="line.price_unit" />
+                                </td>
+                                <td name="td_priceunit" class="text-end">
+                                    <span t-field="line.price_subtotal" />
                                 </td>
                                 <!-- <td t-if="display_discount" class="text-end" groups="product.group_discount_per_so_line">
                                         <span t-field="line.discount" />
@@ -104,6 +100,8 @@
                                 </tr>
                             </t>
                         </t>
+
+
                     </tbody>
                 </table>
                 <div t-if="doc.signature" class="mt-4 ml64 mr4" name="signature">

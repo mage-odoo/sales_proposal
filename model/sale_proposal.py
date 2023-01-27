@@ -41,7 +41,7 @@ class SaleProposal(models.Model):
         comodel_name='sale.proposal.line',
         inverse_name='proposal_id',
         string="Proposal Lines",
-        copy=True, auto_join=True)
+        copy=True, ondelete="cascade")
     user_id = fields.Many2one(
         comodel_name='res.users',
         string="Salesperson",
@@ -95,7 +95,8 @@ class SaleProposal(models.Model):
         string="Signed By", copy=False)
     signed_on = fields.Datetime(
         string="Signed On", copy=False)
-    amount_total = fields.Float('Amount Total', default="0.0")
+    amount_total = fields.Float(
+        'Amount Total', default="0.0", store=True, compute='_compute_amounts',)
 
     @api.depends('partner_id', 'company_id')
     def _compute_fiscal_position_id(self):
@@ -123,6 +124,13 @@ class SaleProposal(models.Model):
     def _compute_require_payment(self):
         for order in self:
             order.require_payment = order.company_id.portal_confirmation_pay
+
+    @api.depends('proposal_line_ids.price_subtotal')
+    def _compute_amounts(self):
+        """Compute the total amounts of the SO."""
+        for order in self:
+            order.amount_total = sum(
+                order.proposal_line_ids.mapped('price_subtotal'))
 
     # dose any method call other model comute method
     @api.depends('partner_id', 'user_id')
@@ -201,7 +209,9 @@ class SaleProposal(models.Model):
 
     def _get_proposal_lines_to_report(self):
         print("self value ", self)
-        _lines = self.proposal_line_ids.search([])
+        _lines = False
+        if self.proposal_line_ids:
+            _lines = self.proposal_line_ids
         # filtered(lambda line:and not line._get_downpayment_state())
 
         # def show_line(line):
@@ -213,5 +223,27 @@ class SaleProposal(models.Model):
         #         return True  # Only show posted down payments
         #     else:
         #         return False
-        print("_get_proposal_lines_to_report from sale proposal", _lines)
+        print("_get_proposal_lines_to_report from sale proposal", type(_lines))
         return _lines
+
+    def _get_portal_return_action(self):
+        """ Return the action used to display orders when returning from customer portal. """
+        self.ensure_one()
+        return self.env.ref('sales_proposal.sale_proposal_action')
+
+    def _has_to_be_confirm(self, include_draft=False):
+        print(" _has_to_be_confirm called")
+        if include_draft:
+            pass
+
+    def _has_to_be_paid(self, include_draft=False):
+        print(" _has_to_be_confirm called")
+        if include_draft:
+            pass
+        return True
+
+    '''use for downloaded file name'''
+
+    def _get_report_base_filename(self):
+        self.ensure_one()
+        return '%s_Proposal' % (self.name)

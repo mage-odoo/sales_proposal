@@ -22,6 +22,7 @@
                     <div class="oe_title">
                         <field name="company_id" invisible="1"></field>
                         <field name="state" readonly="1"></field>
+                        <field name="amount_total"></field>
                         <h1>
                             <field name="name" readonly="1" />
                         </h1>
@@ -117,6 +118,7 @@
             </form>
         </field>
     </record>
+    <!-- tree view -->
     <record id="sale_proposal_view_tree" model="ir.ui.view">
         <field name="name">sale.proposal.view.tree</field>
         <field name="model">sale.proposal</field>
@@ -127,6 +129,8 @@
             </tree>
         </field>
     </record>
+
+    <!-- Action View -->
     <record id="sale_proposal_action" model="ir.actions.act_window">
         <field name="name">Proposal</field>
         <field name="res_model">sale.proposal</field>

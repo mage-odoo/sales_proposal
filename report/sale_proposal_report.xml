@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <report id="sale_proposal_report_pdf_report"
-    model="sale.proposal" string="Proposal"
-    report_type="qweb-pdf" 
-    name="sales_proposal.report_sale_proposal_document" 
-    file="sales _proposal.report_sale_proposal_document" 
-    menu="False" />
+    <record id="sale_proposal_report_pdf_report" model="ir.actions.report">
+        <field name="name">Proposal</field>
+        <field name="model">sale.proposal</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sales_proposal.report_sale_proposal_document</field>
+        <field name="report_file">sales_proposal.report_sale_proposal_document</field>
+        <field name="print_report_name">(object.state in ('draft', 'send') and 'Proposal - %s' % (object.name))</field>
+    </record>
 </odoo>

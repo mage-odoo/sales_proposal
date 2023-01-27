@@ -98,6 +98,7 @@ class CustomerPortal(portal.CustomerPortal):
 
     @http.route(['/my/proposal/<int:order_id>'], type='http', auth="public", website=True)
     def portal_proposal_page(self, order_id, report_type=None, access_token=None, message=False, download=False, **kw):
+
         try:
             order_sudo = self._document_check_access(
                 'sale.proposal', order_id, access_token=access_token)
@@ -105,6 +106,7 @@ class CustomerPortal(portal.CustomerPortal):
             return request.redirect('/my')
 
         if report_type in ('html', 'pdf', 'text'):
+            print("Always called portal_proposal_page ", report_type)
             return self._show_report(model=order_sudo, report_type=report_type, report_ref='sales_proposal.sale_proposal_report_pdf_report', download=download)
         print("portal_proposal_page called in portal py")
         backend_url = f'/web#model={order_sudo._name}'\
@@ -112,10 +114,11 @@ class CustomerPortal(portal.CustomerPortal):
                       f'&action={order_sudo._get_portal_return_action().id}'\
                       f'&view_type=form'
         values = {
-            'sale_order': order_sudo,
+            'sale_proposal': order_sudo,
             'message': message,
             'report_type': 'html',
             'backend_url': backend_url,
             'res_company': order_sudo.company_id,  # Used to display correct company logo
         }
-        return request.render("sales_proposal.sale_proposal_portal_content", values)
+        print(order_sudo.proposal_line_ids)
+        return request.render("sales_proposal.sale_proposal_portal_template", values)

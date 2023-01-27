@@ -6,7 +6,7 @@ class SaleProposalLine(models.Model):
     _description = 'Sales Proposal'
 
     name = fields.Text(string="Description",
-                       compute='_compute_name', required=True,)
+                       compute='_compute_name', required=True, store=True,)
     product_id = fields.Many2one(
         comodel_name='product.product', string='Product')
     sequence = fields.Integer(string="Sequence", default=10)
@@ -14,10 +14,11 @@ class SaleProposalLine(models.Model):
     customer_lead = fields.Float('Lead Time')
     proposal_id = fields.Many2one(
         comodel_name='sale.proposal', string='Proposal')
-    price_unit = fields.Float('Unit Price')
-    product_uom_qty = fields.Float('Quantity')
+    price_unit = fields.Float(
+        'Unit Price', compute='_compute_price_unit', store=True)
+    product_uom_qty = fields.Float('Quantity', default="1.0")
     price_subtotal = fields.Monetary(
-        string='Subtotal', currency_field='currency_id')
+        string='Subtotal', compute='_compute_price_subtotal', store=True, currency_field='currency_id')
     currency_id = fields.Many2one('res.currency', string='Currency', required=True,
                                   default=lambda self: self.env.user.company_id.currency_id)
 
@@ -25,3 +26,19 @@ class SaleProposalLine(models.Model):
     def _compute_name(self):
         for line in self:
             line.name = line.product_id.name
+
+    @api.depends('product_id')
+    def _compute_price_unit(self):
+        for line in self:
+            line.price_unit = line.product_id.list_price
+
+    @api.depends('product_id', 'product_uom_qty')
+    def _compute_price_subtotal(self):
+        for line in self:
+            price_subtotal = line.product_uom_qty*line.price_unit
+            line.update({'price_subtotal': price_subtotal})
+
+    @api.model
+    def create(self, vals_list):
+        print("create called")
+        return super().create(vals_list)
