@@ -304,23 +304,24 @@
 
                             <t t-foreach="lines_to_report" t-as="line">
 
-                                <tr class="bg-200 fw-bold">
+                                <tr class="bg-white">
                                     <!-- <t t-if="not line.display_type"> -->
                                     <td id="product_name">
                                         <span t-field="line.name" />
                                     </td>
                                     <td class="text-end">
                                         <div id="quote_qty">
-                                            <button class="fa fa-arrow-circle-up border-0"></button>
+                                            <button class="fa fa-plus bg-white border-0"></button>
                                             <span t-field="line.product_uom_qty" />
-                                            <button class="fa fa-arrow-circle-down border-0"></button>
+                                            <button class="fa fa-minus bg-white border-0"></button>
                                         </div>
                                     </td>
                                     <td class="text-end">
                                         <div id="quote_qty">
-                                            <button class="fa fa-arrow-circle-up border-0"></button>
-                                            <span t-field="line.price_unit" />
-                                            <button class="fa fa-arrow-circle-down border-0"></button>
+                                            <button class="fa fa-plus bg-white border-0"></button>
+                                            <inpute type='text' t-field="line.price_unit" class="from-control" />
+                                            <!-- <span t-field="line.price_unit" /> -->
+                                            <button class="fa fa-minus bg-white border-0"></button>
                                         </div>
                                     </td>
                                     <td class="text-end">
