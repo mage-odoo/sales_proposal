@@ -41,7 +41,7 @@ class SaleProposal(models.Model):
         comodel_name='sale.proposal.line',
         inverse_name='proposal_id',
         string="Proposal Lines",
-        copy=True, ondelete="cascade")
+        copy=True)
     user_id = fields.Many2one(
         comodel_name='res.users',
         string="Salesperson",
@@ -95,8 +95,10 @@ class SaleProposal(models.Model):
         string="Signed By", copy=False)
     signed_on = fields.Datetime(
         string="Signed On", copy=False)
-    amount_total = fields.Float(
-        'Amount Total', default="0.0", store=True, compute='_compute_amounts',)
+    amount_total = fields.Monetary(
+        'Amount Total', default="0.0", currency_field='currency_id', store=True, compute='_compute_amounts')
+    currency_id = fields.Many2one('res.currency', string='Currency', required=True,
+                                  default=lambda self: self.env.user.company_id.currency_id)
 
     @api.depends('partner_id', 'company_id')
     def _compute_fiscal_position_id(self):

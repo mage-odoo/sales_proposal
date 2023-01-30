@@ -20,7 +20,10 @@
         </xpath>
     </template>
     <!-- templete pdf view -->
+
+
     <template id="portal_my_proposals" name="My Proposal">
+
         <t t-call="portal.portal_layout">
             <t t-set="breadcrumbs_searchbar" t-value="True" />
 
@@ -67,6 +70,8 @@
             <p t-else="">There are currently no proposals for your account.</p>
         </t>
     </template>
+    <!-- include js file -->
+
 
     <!-- Complete page of the sale_proposal -->
     <template id="sale_proposal_portal_template" name="Sales Proposal Portal Template" inherit_id="portal.portal_sidebar" primary="True">
@@ -76,7 +81,8 @@
                 <t t-call="portal.portal_back_in_edit_mode" />
             </t>
 
-            <div class="row mt16 o_portal_sale_sidebar">
+            <div class="row mt16 o_portal_sale_proposal_sidebar">
+
                 <t t-call="portal.portal_record_sidebar">
                     <t t-set="classes" t-value="'col-lg-auto d-print-none '" />
                     <t t-set="title">
@@ -110,14 +116,6 @@
                                 <ul class="nav flex-column bs-sidenav"></ul>
                             </li>
 
-                            <t t-if="sale_proposal.state in ['draft', 'send','confirm']">
-                                <li t-if="sale_proposal.validity_date" class="list-group-item">
-                                    <t t-if="sale_proposal.amount_total">
-                                        <h4 t-field="sale_proposal.amount_total" class="text-success" data-id="total_amount" />
-                                    </t>
-                                </li>
-                            </t>
-
                             <li t-if="sale_proposal.user_id" class="list-group-item flex-grow-1">
                                 <div class="small mb-1">
                                     <strong class="text-muted">Salesperson</strong>
@@ -138,44 +136,6 @@
                     </t>
                 </t>
 
-                <!-- Page content -->
-                <!-- <div id="quote_content" class="col-12 col-lg justify-content-end">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <header class="modal-header">
-                                <h4 class="modal-title">Validate Order</h4>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </header>
-                            <main class="modal-body" id="sign-dialog">
-                                <p>
-                                    <span>By paying this proposal, I agree to the following terms:</span>
-                                    <ul>
-                                        <li>
-                                            <span>Accepted on the behalf of:</span>
-                                            <b t-field="sale_proposal.partner_id.commercial_partner_id" />
-                                        </li>
-                                        <li>
-                                            <span>For an amount of:</span>
-                                            <b data-id="total_amount" t-field="sale_proposal.amount_total" />
-                                        </li>
-                                    </ul>
-                                </p>
-                                <div t-if="providers or tokens" id="payment_method" class="text-start">
-                                    <h3 class="mb24">Pay with</h3>
-                                    <t t-call="payment.checkout" />
-                                </div>
-                                <div t-else="" class="alert alert-warning">
-                                    <strong>No suitable payment option could be found.</strong>
-                                    <br />
-                                        If you believe that it is an error, please contact the website administrator.
-                                </div>
-                            </main>
-                        </div>
-                    </div>
-                </div> -->
-
-                <!-- modal relative to the action reject -->
-
 
                 <!-- status messages -->
                 <div t-if="message == 'sign_ok'" class="alert alert-success alert-dismissible d-print-none" role="status">
@@ -192,24 +152,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         Your order is not in a state to be rejected.
                 </div>
-                <!-- 
-                <div t-if="sale_proposal.state == 'cancel'" class="alert alert-danger alert-dismissible d-print-none" role="alert">
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
-                    <strong>This quotation has been canceled.</strong>
-                    <a role="button" href="#discussion">
-                        <i class="fa fa-comment" />
- Contact us to get a new quotation.</a>
-                </div> -->
 
-                <!-- <div t-if="sale_proposal.is_expired" class="alert alert-warning alert-dismissible d-print-none" role="alert">
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
-                    <strong>This offer expired!</strong>
-                    <a role="button" href="#discussion">
-                        <i class="fa fa-comment" />
- Contact us to get a new quotation.</a>
-                </div> -->
-
-                <!-- main content -->
                 <div t-attf-class="col-12 col-lg justify-content-end" id="portal_proposal_content">
                     <div class="card-body">
                         <div t-call="sales_proposal.sale_proposal_portal_content" />
@@ -218,7 +161,7 @@
 
                         <t t-if="sale_proposal.state in ['send','draft']">
                             <div class="col-sm-auto mt8">
-                                <a role="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalaccept" href="#">
+                                <a id="accept_button" class="btn btn-primary">
                                     <i class="fa fa-check" />
                                     <t > Accept Proposal</t>
                                 </a>
@@ -231,10 +174,12 @@
                         </t>
                     </div>
                     <!-- chatter -->
-                    <!-- <div id="sale_proposal_communication" class="mt-4">
-                    <h2>History</h2>
-                    <t t-call="portal.message_thread" />
-                </div> -->
+                    <div id="sale_proposal_communicationa" class="mt-4">
+                        <h2>History</h2>
+                        <t t-call="portal.message_thread">
+                            <t t-set="object" t-value="sale_proposal" />
+                        </t>
+                    </div>
                 </div>
             </div>            <!-- // #quote_content -->
         </xpath>
@@ -285,6 +230,7 @@
                                 <th t-attf-class="text-end {{ 'd-none d-sm-table-cell' if report_type == 'html' else '' }}">
                                 Unit Price
                                 </th>
+
                                 <!-- <th t-if="display_discount" t-attf-class="text-end {{ 'd-none d-sm-table-cell' if report_type == 'html' else '' }}">
                                     <span>Disc.%</span>
                                 </th> -->
@@ -298,54 +244,45 @@
                             </tr>
                         </thead>
                         <tbody class="sale_tbody">
-
                             <t t-set="current_subtotal" t-value="0" />
                             <t t-set="lines_to_report" t-value="sale_proposal._get_proposal_lines_to_report()" />
 
                             <t t-foreach="lines_to_report" t-as="line">
 
-                                <tr class="bg-white">
+                                <tr class="bg-white" t-att-data-order-id="line.id">
                                     <!-- <t t-if="not line.display_type"> -->
                                     <td id="product_name">
                                         <span t-field="line.name" />
                                     </td>
-                                    <td class="text-end">
-                                        <div id="quote_qty">
-                                            <button class="fa fa-plus bg-white border-0"></button>
-                                            <span t-field="line.product_uom_qty" />
-                                            <button class="fa fa-minus bg-white border-0"></button>
-                                        </div>
+                                    <td class="text-end ">
+                                        <input inputmode="numeric" id="sales_proposal_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
                                     </td>
                                     <td class="text-end">
-                                        <div id="quote_qty">
-                                            <button class="fa fa-plus bg-white border-0"></button>
-                                            <inpute type='text' t-field="line.price_unit" class="from-control" />
-                                            <!-- <span t-field="line.price_unit" /> -->
-                                            <button class="fa fa-minus bg-white border-0"></button>
-                                        </div>
+                                        <input inputmode="numeric" id="sales_proposal_price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
                                     </td>
                                     <td class="text-end">
-                                        <div id="quote_qty">
-                                            <span t-field="line.price_subtotal" />
+                                        <div >
+                                            <!-- <input type="text" t-att-value="line.price_unit" class="fa text-end" /> -->
+                                            <p id="price_subtotel" t-att-data-order-id="line.id" t-field="line.price_subtotal" />
                                         </div>
-                                    </td>
-                                </tr>
-                                <tr t-if="current_section and (line_last or lines_to_report[line_index+1].display_type == 'line_section') and not line.is_downpayment" class="is-subtotal text-end">
-                                    <td colspan="99">
-                                        <strong class="mr16">Subtotal</strong>
-                                        <span t-out="current_subtotal" t-options='{"widget": "monetary", "display_currency": sale_proposal.pricelist_id.currency_id}'></span>
                                     </td>
                                 </tr>
                             </t>
                         </tbody>
                     </table>
 
-                    <!-- 
                     <div id="total" class="row" name="total" style="page-break-inside: avoid;">
-                        <div t-attf-class="#{'col-6' if report_type != 'html' else 'col-sm-7 col-md-6'} ms-auto">
-                            <t t-call="sales_proposal.sale_proposal_portal_content_totals_table" />
+
+                        <div class="text-end col-8">
+                        Total :</div>
+                        <div class="text-end col-4 ">
+                            <!-- <table class="table table-sm "> -->
+                            <span name="amount_total" t-field="sale_proposal.amount_total" />
+                            <!-- </table> -->
+                            <!-- Totel :<span t-field="sale_proposal.amount_total" /> -->
                         </div>
-                    </div> -->
+                        <!-- </div> -->
+                    </div>
                 </section>
 
                 <section t-if="sale_proposal.signature" id="signature" name="Signature">
@@ -367,11 +304,11 @@
         </div>
     </template>
 
-    <template id="sale_proposal_portal_content_totals_table">
+    <!-- <template id="sale_proposal_portal_content_totals_table">
         <table class="table table-sm">
             <t t-set="tax_totals" t-value="0.0" />
             <t t-call="account.document_tax_totals" />
         </table>
-    </template>
+    </template> -->
 </odoo>
 <!-- -->

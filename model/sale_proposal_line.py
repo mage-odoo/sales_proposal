@@ -6,14 +6,14 @@ class SaleProposalLine(models.Model):
     _description = 'Sales Proposal'
 
     name = fields.Text(string="Description",
-                       compute='_compute_name', required=True, store=True,)
+                       compute='_compute_name', required=True, store=True, precompute=True)
     product_id = fields.Many2one(
         comodel_name='product.product', string='Product')
     sequence = fields.Integer(string="Sequence", default=10)
     product_templaet_id = fields.Many2one(related='product_id.product_tmpl_id')
     customer_lead = fields.Float('Lead Time')
     proposal_id = fields.Many2one(
-        comodel_name='sale.proposal', string='Proposal')
+        comodel_name='sale.proposal', ondelete='cascade',  string='Proposal')
     price_unit = fields.Float(
         'Unit Price', compute='_compute_price_unit', store=True)
     product_uom_qty = fields.Float('Quantity', default="1.0")
@@ -32,7 +32,7 @@ class SaleProposalLine(models.Model):
         for line in self:
             line.price_unit = line.product_id.list_price
 
-    @api.depends('product_id', 'product_uom_qty')
+    @api.depends('product_id', 'product_uom_qty', 'price_unit')
     def _compute_price_subtotal(self):
         for line in self:
             price_subtotal = line.product_uom_qty*line.price_unit

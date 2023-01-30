@@ -122,3 +122,10 @@ class CustomerPortal(portal.CustomerPortal):
         }
         print(order_sudo.proposal_line_ids)
         return request.render("sales_proposal.sale_proposal_portal_template", values)
+
+    @http.route(['/my/proposal/<int:order_id>/update'], type='json', auth="public", website=True)
+    def portal_update_page(self, order_id, access_token=None, data=None, **kw):
+        line_ids = request.env['sale.proposal.line'].browse(
+            int(data['line_id']))
+        line_ids.write(
+            {data['field']: float(data['value'])})

@@ -26,4 +26,9 @@
     'application': True,
     'installable': True,
     'license': 'LGPL-3',
+    'assets': {
+        'web.assets_frontend': [
+            '/sales_proposal/static/src/js/proposal.js',
+        ],
+    }
 }
