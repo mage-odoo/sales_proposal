@@ -24,6 +24,7 @@ class SaleProposal(models.Model):
             ('draft', "Draft"),
             ('send', "Send"),
             ('confirm', "Confirm"),
+            ('cancel', "Cancel"),
         ],
         string="Status", required=True,
         copy=False, tracking=3,
@@ -31,12 +32,6 @@ class SaleProposal(models.Model):
     validity_date = fields.Date(
         string="Expiration",
         store=True, readonly=False, copy=False)
-    payment_term_id = fields.Many2one(
-        comodel_name='account.payment.term',
-        string="Payment Terms",
-        compute='_compute_payment_term_id',
-        store=True, readonly=False,
-        domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
     proposal_line_ids = fields.One2many(
         comodel_name='sale.proposal.line',
         inverse_name='proposal_id',
@@ -170,14 +165,23 @@ class SaleProposal(models.Model):
                     'sale.proposal', sequence_date=seq_date) or _("New")
         return super().create(vals_list)
 
-    @api.depends('partner_id')
-    def _compute_payment_term_id(self):
-        for order in self:
-            order = order.with_company(order.company_id)
-            order.payment_term_id = order.partner_id.property_payment_term_id
-
     def send_proposal_mail(self):
-        pass
+        self.ensure_one()
+        mail_template = self.env.ref(
+            'sales_proposal.email_template_edi_sale_proposal')
+        ctx = {
+            'sale_proposal_id': self.id,
+            'default_template_id': mail_template.id if mail_template else None,
+        }
+        return {
+            'type': 'ir.actions.act_window',
+            'view_mode': 'form',
+            'res_model': 'mail.compose.message',
+            'views': [(False, 'form')],
+            'view_id': False,
+            'target': 'new',
+            'context': ctx,
+        }
 
     # def _compute_access_url(self):
     #     super()._compute_access_url()
@@ -207,7 +211,11 @@ class SaleProposal(models.Model):
         # print(unused_filetype)
 
     def sale_proposal_confirm(self):
-        pass
+        print("--------------confirm--------------")
+
+    def sale_proposal_draft(self):
+        for proposal in self:
+            proposal.state = 'draft'
 
     def _get_proposal_lines_to_report(self):
         print("self value ", self)
@@ -234,12 +242,12 @@ class SaleProposal(models.Model):
         return self.env.ref('sales_proposal.sale_proposal_action')
 
     def _has_to_be_confirm(self, include_draft=False):
-        print(" _has_to_be_confirm called")
+        print(" _has_to_be_confirm called-----------------------------")
         if include_draft:
             pass
 
     def _has_to_be_paid(self, include_draft=False):
-        print(" _has_to_be_confirm called")
+        print(" _has_to_be_paid called")
         if include_draft:
             pass
         return True

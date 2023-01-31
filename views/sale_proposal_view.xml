@@ -6,8 +6,9 @@
         <field name="arch" type="xml">
             <form string="Proposal">
                 <header>
-                    <button name="send_proposal_mail" string="Send by Email" type="object" class="btn-primary" data-hotkey="g" context="{'validate_analytic': True}" />
-                    <button name="sale_proposal_confirm" data-hotkey="v" string="Confirm" class="btn-primary" type="object" context="{'validate_analytic': True}" attrs="{'invisible': [('state', 'not in', ['confirm'])]}" />
+                    <button name="sale_proposal_draft" data-hotkey="d" string="Draft" class="btn-primary" type="object" attrs="{'invisible': [('state', 'not in', ['send'])]}" />
+                    <button name="send_proposal_mail" string="Send by Email" type="object" class="btn-primary" data-hotkey="g" context="{'validate_analytic': True}" attrs="{'invisible': [('state', 'not in', ['draft'])]}" />
+                    <button name="sale_proposal_confirm" data-hotkey="v" string="Confirm" class="btn-primary" type="object" context="{'validate_analytic': True}" attrs="{'invisible': [('state', 'not in', ['send'])]}" />
                     <field name="state" widget="statusbar"></field>
                 </header>
                 <sheet>
@@ -21,8 +22,8 @@
                     </div>
                     <div class="oe_title">
                         <field name="company_id" invisible="1"></field>
-                        <field name="state" readonly="1"></field>
-                        <field name="amount_total"></field>
+                        <field name="state" invisible="1"></field>
+                        <field name="amount_total" invisible="1"></field>
                         <h1>
                             <field name="name" readonly="1" />
                         </h1>
@@ -36,7 +37,6 @@
                         <group name="dat_paymentterm">
                             <field name="validity_date"></field>
                             <field name="date_order"></field>
-                            <field name="payment_term_id"></field>
                         </group>
                     </group>
                     <notebook>

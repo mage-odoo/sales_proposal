@@ -6,6 +6,6 @@
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">sales_proposal.report_sale_proposal_document</field>
         <field name="report_file">sales_proposal.report_sale_proposal_document</field>
-        <field name="print_report_name">(object.state in ('draft', 'send') and 'Proposal - %s' % (object.name))</field>
+        <field name="print_report_name">('Proposal_%s_%s' % (object.name,object.state))</field>
     </record>
 </odoo>

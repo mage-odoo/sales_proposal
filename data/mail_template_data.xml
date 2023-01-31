@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="email_template_edi_sale_proposal" model="mail.template">
+            <field name="name">Sales Proposal: Send Proposal</field>
+            <field name="model_id" ref="sales_proposal.model_sale_proposal" />
+            <field name="subject">{{ object.company_id.name }}</field>
+            <field name="email_from">{{ object.user_id }}</field>
+            <field name="partner_to">{{ object.partner_id.id }}</field>
+            <field name="description">Used by salespeople when they send Proposal</field>
+            <field name="body_html" type="html">
+                <div style="margin: 0px; padding: 0px;">
+                    <p style="margin: 0px; padding: 0px; font-size: 13px;">
+                        Hello,
+                        <br />
+                        <br />
+                        Your Proposal, <span style="font-weight: bold;" t-out="object.name" />
+                        mounting in <span style="font-weight: bold;" t-field="object.amount_total" />
+                        is ready for review.
+                <br />
+                <br />
+                        Do not hesitate to contact us if you have any questions.
+                <t t-value="object.user_id.signature" />
+                <br />
+                <br />
+                ---
+                <br />
+                <t>Mitchell Admin</t>
+            </p>
+        </div>
+    </field>
+    <field name="report_template" ref="sale_proposal_report_pdf_report" />
+    <field name="report_name">{{ (object.name or '').replace('/','_') }}</field>
+    <field name="lang">{{ object.partner_id.lang }}</field>
+    <field name="auto_delete" eval="True" />
+</record>
+</data>
+</odoo>

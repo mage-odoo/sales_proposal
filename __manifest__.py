@@ -12,6 +12,7 @@
         'security/ir.model.access.csv',
 
         'data/ir_sequence_data.xml',
+        'data/mail_template_data.xml',
 
         'views/sale_portal_templates.xml',
         'views/sale_proposal_view.xml',

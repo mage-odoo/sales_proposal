@@ -2,9 +2,9 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import binascii
-
+from math import ceil
 from odoo import fields, http, SUPERUSER_ID, _
-from odoo.exceptions import AccessError, MissingError, ValidationError
+from odoo.exceptions import AccessError, UserError, MissingError, ValidationError
 from odoo.fields import Command
 from odoo.http import request
 
@@ -86,7 +86,7 @@ class CustomerPortal(portal.CustomerPortal):
     def portal_my_proposal(self, **kwargs):
         values = self._prepare_sale_proposal_portal_rendering_values(
             proposal_page=True, **kwargs)
-        print(values)
+        print('sales_proposal.portal_my_proposals')
         return request.render("sales_proposal.portal_my_proposals", values)
 
     def _get_sale_proposal_searchbar_sortings(self):
@@ -98,13 +98,11 @@ class CustomerPortal(portal.CustomerPortal):
 
     @http.route(['/my/proposal/<int:order_id>'], type='http', auth="public", website=True)
     def portal_proposal_page(self, order_id, report_type=None, access_token=None, message=False, download=False, **kw):
-
         try:
             order_sudo = self._document_check_access(
                 'sale.proposal', order_id, access_token=access_token)
         except (AccessError, MissingError):
             return request.redirect('/my')
-
         if report_type in ('html', 'pdf', 'text'):
             print("Always called portal_proposal_page ", report_type)
             return self._show_report(model=order_sudo, report_type=report_type, report_ref='sales_proposal.sale_proposal_report_pdf_report', download=download)
@@ -121,11 +119,25 @@ class CustomerPortal(portal.CustomerPortal):
             'res_company': order_sudo.company_id,  # Used to display correct company logo
         }
         print(order_sudo.proposal_line_ids)
+        print("called sales_proposal.sale_proposal_portal_template ")
         return request.render("sales_proposal.sale_proposal_portal_template", values)
 
     @http.route(['/my/proposal/<int:order_id>/update'], type='json', auth="public", website=True)
     def portal_update_page(self, order_id, access_token=None, data=None, **kw):
-        line_ids = request.env['sale.proposal.line'].browse(
-            int(data['line_id']))
-        line_ids.write(
-            {data['field']: float(data['value'])})
+        try:
+            if data['field'] in ['product_uom_qty', 'price_unit']:
+                if (data['field'] == 'product_uom_qty' and int(data['value']) == 0):
+                    data['value'] = 1
+                line_ids = request.env['sale.proposal.line'].browse(
+                    int(data['line_id']))
+                line_ids.write(
+                    {data['field']: float(ceil(data['value']))})
+        except (AccessError, MissingError):
+            print("Missing or AccessError on /my/proposal/%s/update" % (order_id))
+
+    @http.route(['/my/proposal/<int:order_id>/reject'], type='json', auth="public", website=True)
+    def portal_reject_page(self, order_id, access_token=None, data=None, **kw):
+        if data['proposal_id']:
+            proposal_id = request.env['sale.proposal'].browse(
+                int(data['proposal_id']))
+            proposal_id.write({'state': 'cancel'})
