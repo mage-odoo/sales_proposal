@@ -19,8 +19,7 @@
             </t>
         </xpath>
     </template>
-    <!-- templete pdf view -->
-
+    <!-- templete view -->
 
     <template id="portal_my_proposals" name="My Proposal">
 
@@ -36,7 +35,6 @@
                         <th>Proposal #</th>
                         <th class="text-end">Proposal Date</th>
                         <th class="text-end">Stage</th>
-                        <th class="text-center" />
                         <th class="text-end">Total</th>
                     </tr>
                 </thead>
@@ -51,16 +49,9 @@
                             <span t-field="proposal.date_order" />
                         </td>
                         <td class="text-end">
-                            <span t-field="proposal.state" />
+                            <span t-field="proposal.state" class="badge rounded-pill text-bg-primary" />
                         </td>
-                        <td class="text-center">
-                            <span t-if="proposal.state == 'cancel'" class="badge rounded-pill text-bg-secondary">
-                                <i class="fa fa-fw fa-remove" />
- Cancelled</span>
-                            <!-- <span t-if="proposal.is_expired" class="badge rounded-pill text-bg-secondary">
-                                <i class="fa fa-fw fa-clock-o" />
- Expired</span> -->
-                        </td>
+
                         <td class="text-end">
                             <span t-field="proposal.amount_total" />
                         </td>
@@ -131,17 +122,36 @@
                     </t>
                 </t>
 
-                <!-- status messages -->
-                <div t-if="message == 'sign_ok'" class="alert alert-success alert-dismissible d-print-none" role="status">
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    <strong>Thank You!</strong>
-                    <br />
-                    <t t-if="message == 'sign_ok' and sale_proposal.state in ['draft', 'send','confirm']">
-                            Your order has been confirmed.
-                    </t>
-                    <t t-else="">Your order has been signed.</t>
+                <div role="dialog" class="modal fade" id="modalaccept">
+                    <div class="modal-dialog" t-if="sale_proposal.state">
+                        <form id="accept" method="POST" t-att-data-order-id="sale_proposal.id" t-att-data-token="sale_proposal.access_token" class="js_accept_json modal-content js_website_submit_form">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()" />
+                            <header class="modal-header">
+                                <h4 class="modal-title">Validate Proposal</h4>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </header>
+                            <main class="modal-body" id="sign-dialog">
+                                <p>
+                                    <span>By signing this proposal, I agree to the following terms:</span>
+                                    <ul>
+                                        <li>
+                                            <span>Accepted on the behalf of:</span>
+                                            <b t-field="sale_proposal.partner_id.commercial_partner_id" />
+                                        </li>
+                                        <li>
+                                            <span>For an amount of:</span>
+                                            <b data-id="total_amount" t-field="sale_proposal.amount_total" />
+                                        </li>
+                                    </ul>
+                                </p>
+                                <t t-call="portal.signature_form">
+                                    <t t-set="call_url" t-value="sale_proposal.get_portal_url(suffix='/accept')" />
+                                    <t t-set="default_name" t-value="sale_proposal.partner_id.name" />
+                                </t>
+                            </main>
+                        </form>
+                    </div>
                 </div>
-
 
                 <div t-attf-class="col-12 col-lg justify-content-end" id="portal_proposal_content">
                     <div class="card-body">
@@ -151,7 +161,7 @@
 
                         <t t-if="sale_proposal.state in ['send','draft']">
                             <div class="col-sm-auto mt8">
-                                <a id="accept_button" t-att-data-order-id="sale_proposal.id" class="btn btn-primary">
+                                <a role="button" t-att-data-order-id="sale_proposal.id" data-bs-toggle="modal" data-bs-target="#modalaccept" class="btn btn-primary" href="#">
                                     <i class="fa fa-check" />
                                     <t > Sign &amp; Accept Proposal</t>
                                 </a>
@@ -180,126 +190,128 @@
             </div>            <!-- // #quote_content -->
         </xpath>
     </template>
+
     <template id="sale_proposal_portal_content" name="Sales Proposal Portal Content">
-        <!-- Intro -->
-        <div id="introduction" class="pb-2 pt-3 card-header bg-white">
-            <h2 class="my-0 ">
+        <!-- status messages -->
+        <div id="quote_content" class="col-12 col-lg justify-content-end">
+            <div t-if="message == 'sign_ok' " class="alert alert-success alert-dismissible d-print-none" role="status">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Thank You!</strong>
+                <br />
+                <t >
+                    Your Proposal has been confirmed.
+                </t>
+            </div>
+            <!-- Intro -->
+            <div id="introduction" class="pb-2 pt-3 card-header bg-white">
+                <h2 class="my-0 ">
                 Proposal <em t-out="sale_proposal.name" />
-            </h2>
-        </div>
+                </h2>
+            </div>
 
-        <div t-attf-class="#{'card-body' if report_type == 'html' else ''}">
-            <!-- Informations -->
-            <div id="informations">
-                <div class="row" id="so_date">
-                    <div class="mb-3 col-6">
-                        <t t-if="sale_proposal.state in ['send', 'confirm', 'draft']">
-                            <strong>Proposal Date:</strong>
-                        </t>
-                        <span t-field="sale_proposal.date_order" t-options='{"widget": "date"}' />
-                    </div>
-                    <div class="mb-3 col-6" t-if="sale_proposal.validity_date">
-                        <strong>Expiration Date:</strong>
-                        <span t-field="sale_proposal.validity_date" t-options='{"widget": "date"}' />
-                    </div>
-                </div>
-                <div class="row" id="custome_address">
-                    <div class="col-lg-6">
-                        <strong class="d-block mb-1">
-                                Customer Address:
-                        </strong>
-                        <div class="col-lg-5">
-                            <address t-field="sale_proposal.partner_address" />
-                        </div>
-                    </div>
-                </div>
-                <section id="details" style="page-break-inside: auto;" class="mt32">
-                    <h3 id="details">Pricing</h3>
+            <div t-attf-class="#{'card-body' if report_type == 'html' else ''}">
 
-                    <!-- <t t-set="display_discount" t-value="True in [line.discount > 0 for line in sale_proposal.order_line]" /> -->
-
-                    <table t-att-data-order-id="sale_proposal.id" t-att-data-token="sale_proposal.access_token" class="table table-sm" id="sales_proposal_table">
-                        <thead class="bg-100">
-                            <tr>
-                                <th class="text-start" id="product_name_header">Products</th>
-                                <th class="text-end">Quantity</th>
-                                <th t-attf-class="text-end {{ 'd-none d-sm-table-cell' if report_type == 'html' else '' }}">
-                                Unit Price
-                                </th>
-
-                                <!-- <th t-if="display_discount" t-attf-class="text-end {{ 'd-none d-sm-table-cell' if report_type == 'html' else '' }}">
-                                    <span>Disc.%</span>
-                                </th> -->
-                                <!-- <th t-attf-class="text-end {{ 'd-none d-md-table-cell' if report_type == 'html' else '' }}">
-                                    <span>Taxes</span>
-                                </th> -->
-                                <th class="text-end">
-                                    <span groups="account.group_show_line_subtotals_tax_excluded">Amount</span>
-                                    <span groups="account.group_show_line_subtotals_tax_included">Total Price</span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="sale_tbody">
-                            <t t-set="current_subtotal" t-value="0" />
-                            <t t-set="lines_to_report" t-value="sale_proposal._get_proposal_lines_to_report()" />
-
-                            <t t-foreach="lines_to_report" t-as="line">
-
-                                <tr class="bg-white" t-att-data-order-id="line.id">
-                                    <!-- <t t-if="not line.display_type"> -->
-                                    <td id="product_name">
-                                        <span t-out ="line.name" />
-                                    </td>
-                                    <td class="text-end ">
-                                        <input type="number" inputmode="numeric" id="sales_proposal_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
-                                    </td>
-                                    <td class="text-end">
-                                        <input type="number" inputmode="numeric" id="sales_proposal_price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
-                                    </td>
-                                    <td class="text-end">
-                                        <div >
-                                            <!-- <input type="text" t-att-value="line.price_unit" class="fa text-end" /> -->
-                                            <p id="price_subtotel" t-att-data-order-id="line.id" t-out ="line.price_subtotal" />
-                                        </div>
-                                    </td>
-                                </tr>
+                <!-- Informations -->
+                <div id="informations">
+                    <div class="row" id="so_date">
+                        <div class="mb-3 col-6">
+                            <t t-if="sale_proposal.state in ['send', 'confirm', 'draft']">
+                                <strong>Proposal Date:</strong>
                             </t>
-                        </tbody>
-                    </table>
+                            <span t-field="sale_proposal.date_order" t-options='{"widget": "date"}' />
+                        </div>
+                        <div class="mb-3 col-6" t-if="sale_proposal.validity_date">
+                            <strong>Expiration Date:</strong>
+                            <span t-field="sale_proposal.validity_date" t-options='{"widget": "date"}' />
+                        </div>
+                    </div>
+                    <div class="row" id="custome_address">
+                        <div class="col-lg-6">
+                            <strong class="d-block mb-1">
+                                Customer Address:
+                            </strong>
+                            <div class="col-lg-5">
+                                <address t-field="sale_proposal.partner_address" />
+                            </div>
+                        </div>
+                    </div>
+                    <section id="details" style="page-break-inside: auto;" class="mt32">
+                        <h3 id="details">Pricing</h3>
 
-                    <div id="total" class="row" name="total" style="page-break-inside: avoid;">
+                        <!-- <t t-set="display_discount" t-value="True in [line.discount > 0 for line in sale_proposal.order_line]" /> -->
 
-                        <div class="text-end col-8">
+                        <table t-att-data-order-id="sale_proposal.id" t-att-data-token="sale_proposal.access_token" class="table table-sm" id="sales_proposal_table">
+                            <thead class="bg-100">
+                                <tr>
+                                    <th class="text-start" id="product_name_header">Products</th>
+                                    <th class="text-end">Quantity</th>
+                                    <th t-attf-class="text-end {{ 'd-none d-sm-table-cell' if report_type == 'html' else '' }}">
+                                Unit Price
+                                    </th>
+                                    <th class="text-end">
+                                        <span groups="account.group_show_line_subtotals_tax_excluded">Amount</span>
+                                        <span groups="account.group_show_line_subtotals_tax_included">Total Price</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="sale_tbody">
+                                <t t-set="current_subtotal" t-value="0" />
+                                <t t-set="lines_to_report" t-value="sale_proposal._get_proposal_lines_to_report()" />
+
+                                <t t-foreach="lines_to_report" t-as="line">
+
+                                    <tr class="bg-white" t-att-data-order-id="line.id">
+                                        <!-- <t t-if="not line.display_type"> -->
+                                        <td id="product_name">
+                                            <span t-out ="line.name" />
+                                        </td>
+                                        <td class="text-end ">
+                                            <t t-if="sale_proposal.state in ['send']">
+                                                <input type="number" inputmode="numeric" id="sales_proposal_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
+                                            </t>
+                                            <t t-else="">
+                                                <span t-out ="line.product_uom_qty" />
+                                            </t>
+                                        </td>
+                                        <td class="text-end">
+                                            <t t-if="sale_proposal.state in ['send']">
+                                                <input type="number" inputmode="numeric" id="sales_proposal_price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
+                                            </t>
+                                            <t t-else="">
+                                                <span t-out ="line.price_unit" />
+                                            </t>
+                                        </td>
+                                        <td class="text-end">
+                                            <div >
+                                                <!-- <input type="text" t-att-value="line.price_unit" class="fa text-end" /> -->
+                                                <p id="price_subtotel" t-att-data-order-id="line.id" t-out ="line.price_subtotal" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <div id="total" class="row" name="total" style="page-break-inside: avoid;">
+                            <div class="text-end col-8">
                         Total :</div>
-                        <div class="text-end col-4 ">
-                            <!-- <table class="table table-sm "> -->
-                            <span name="amount_total" t-field="sale_proposal.amount_total" />
-                            <!-- </table> -->
-                            <!-- Totel :<span t-field="sale_proposal.amount_total" /> -->
+                            <div class="text-end col-4 ">
+                                <span name="amount_total" t-field="sale_proposal.amount_total" />
+                            </div>
                         </div>
-                        <!-- </div> -->
-                    </div>
-                </section>
+                    </section>
 
-                <section t-if="sale_proposal.signature" id="signature" name="Signature">
-                    <div class="row mt-4" name="signature">
-                        <div t-attf-class="#{'col-3' if report_type != 'html' else 'col-sm-7 col-md-4'} ms-auto text-center">
-                            <h5>Signature</h5>
-                            <img t-att-src="image_data_uri(sale_proposal.signature)" style="max-height: 6rem; max-width: 100%;" />
-                            <p t-field="sale_proposal.signed_by" />
+                    <section t-if="sale_proposal.signature" id="signature" name="Signature">
+                        <div class="row mt-4" name="signature">
+                            <div t-attf-class="#{'col-3' if report_type != 'html' else 'col-sm-7 col-md-4'} ms-auto text-center">
+                                <h5>Signature</h5>
+                                <img t-att-src="image_data_uri(sale_proposal.signature)" style="max-height: 6rem; max-width: 100%;" />
+                                <p t-field="sale_proposal.signed_by" />
+                            </div>
                         </div>
-                    </div>
-                </section>
-
+                    </section>
+                </div>
             </div>
         </div>
     </template>
-
-    <!-- <template id="sale_proposal_portal_content_totals_table">
-        <table class="table table-sm">
-            <t t-set="tax_totals" t-value="0.0" />
-            <t t-call="account.document_tax_totals" />
-        </table>
-    </template> -->
 </odoo>
-<!-- -->

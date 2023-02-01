@@ -1,8 +1,8 @@
 {
     'name': 'Sales Proposal',
-    'version': '1.0.0',
+    'version': '16.0.1.0',
     'category': 'Sales',
-    'author': ' Odoo S.A.',
+    'author': ' Odoo PS',
     'summary': 'Sales Proposal',
     'description': """To Add Functional Specification For Sales Menu""",
     'depends': [
@@ -22,9 +22,6 @@
         'report/sale_proposal_report.xml',
 
     ],
-    'demo': [],
-    'sequence': -300,
-    'application': True,
     'installable': True,
     'license': 'LGPL-3',
     'assets': {

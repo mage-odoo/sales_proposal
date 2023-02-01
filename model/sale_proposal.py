@@ -1,22 +1,27 @@
 from odoo import models, fields, api, _
+from odoo.tools import html_keep_url, is_html_empty
+from odoo.addons.portal.controllers.mail import _message_post_helper
 
 
 class SaleProposal(models.Model):
     _name = 'sale.proposal'
-    _description = 'Sales Proposal Model same as sale order model'
+    _description = 'Sales Proposal'
     _inherit = ['portal.mixin', 'mail.thread',
                 'mail.activity.mixin', 'utm.mixin']
-
     name = fields.Char(readonly=True, required=True, index=True, copy=False,
                        default=lambda self: _('New'))
     company_id = fields.Many2one(
         'res.company', string='company', required=True, default=lambda self: self.env.company)
     date_order = fields.Datetime(
-        string='Order Date', required=True, default=fields.Datetime.now)
+        string='Proposal Date', required=True, default=fields.Datetime.now)
     partner_id = fields.Many2one('res.partner', string='Customer')
-    partner_address = fields.Char(
-        'Partner Address', related='partner_id.contact_address_complete')
     pricelist_id = fields.Many2one('product.pricelist', string='Pricelist')
+    payment_term_id = fields.Many2one(
+        comodel_name='account.payment.term',
+        string="Payment Terms",
+        compute='_compute_payment_term_id',
+        store=True, readonly=False, precompute=True, check_company=True,  # Unrequired company
+        domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
     sale_order_template_id = fields.Many2one(
         'sale.order.template', 'Proposal Template')
     state = fields.Selection(
@@ -32,6 +37,10 @@ class SaleProposal(models.Model):
     validity_date = fields.Date(
         string="Expiration",
         store=True, readonly=False, copy=False)
+    note = fields.Html(
+        string="Terms and conditions",
+        compute='_compute_note',
+        store=True, readonly=False, precompute=True)
     proposal_line_ids = fields.One2many(
         comodel_name='sale.proposal.line',
         inverse_name='proposal_id',
@@ -59,7 +68,8 @@ class SaleProposal(models.Model):
         string="Online Payment",
         compute='_compute_require_payment',
         store=True, readonly=False, precompute=True)
-    client_proposal_ref = fields.Char(string="Customer Reference", copy=False)
+    client_proposal_ref = fields.Char(
+        string="Customer Reference", copy=False, compute='_compute_client_proposal_ref')
     fiscal_position_id = fields.Many2one(
         comodel_name='account.fiscal.position',
         string="Fiscal Position",
@@ -72,11 +82,6 @@ class SaleProposal(models.Model):
         comodel_name='crm.tag',
         relation='sale_proposal_tag_rel', column1='order_id', column2='tag_id',
         string="Tags")
-    commitment_date = fields.Datetime(
-        string="Delivery Date", copy=False,
-        help="This is the delivery date promised to the customer. "
-        "If set, the delivery order will be scheduled based on "
-        "this date rather than product lead times.")
     origin = fields.Char(
         string="Source Document",
         help="Reference of the document that generated this sales order request")
@@ -94,6 +99,11 @@ class SaleProposal(models.Model):
         'Amount Total', default="0.0", currency_field='currency_id', store=True, compute='_compute_amounts')
     currency_id = fields.Many2one('res.currency', string='Currency', required=True,
                                   default=lambda self: self.env.user.company_id.currency_id)
+    tax_totals = fields.Binary(compute='_compute_tax_totals', exportable=False)
+    amount_untaxed = fields.Monetary(
+        string="Untaxed Amount", store=True, compute='_compute_amounts', tracking=5)
+    amount_tax = fields.Monetary(
+        string="Taxes", store=True, compute='_compute_amounts')
 
     @api.depends('partner_id', 'company_id')
     def _compute_fiscal_position_id(self):
@@ -112,6 +122,11 @@ class SaleProposal(models.Model):
                 )._get_fiscal_position(order.partner_id)
             order.fiscal_position_id = cache[key]
 
+    @api.depends('partner_id')
+    def _compute_client_proposal_ref(self):
+        for proposal in self:
+            proposal.client_proposal_ref = proposal.partner_id.ref
+
     @api.depends('company_id')
     def _compute_require_signature(self):
         for order in self:
@@ -128,6 +143,43 @@ class SaleProposal(models.Model):
         for order in self:
             order.amount_total = sum(
                 order.proposal_line_ids.mapped('price_subtotal'))
+
+    def _convert_to_tax_base_line_dict(self):
+        """ Convert the current record to a dictionary in order to use the generic taxes computation method
+        defined on account.tax.
+
+        :return: A python dictionary.
+        """
+        self.ensure_one()
+        return self.env['account.tax']._convert_to_tax_base_line_dict(
+            self,
+            partner=self.order_id.partner_id,
+            currency=self.order_id.currency_id,
+            product=self.product_id,
+            taxes=self.tax_id,
+            price_unit=self.price_unit,
+            quantity=self.product_uom_qty,
+            discount=self.discount,
+            price_subtotal=self.price_subtotal,
+        )
+
+    @api.depends('proposal_line_ids.tax_id', 'proposal_line_ids.price_unit', 'amount_total', 'amount_untaxed', 'currency_id')
+    def _compute_tax_totals(self):
+        for order in self:
+            order_lines = order.proposal_line_ids
+            order.tax_totals = self.env['account.tax']._prepare_tax_totals(
+                [x._convert_to_tax_base_line_dict() for x in order_lines],
+                order.currency_id or order.company_id.currency_id,
+            )
+
+    @api.depends('proposal_line_ids.price_subtotal', 'proposal_line_ids.price_tax', 'proposal_line_ids.price_total')
+    def _compute_amounts(self):
+        """Compute the total amounts of the SO."""
+        for order in self:
+            order_lines = order.proposal_line_ids
+            order.amount_untaxed = sum(order_lines.mapped('price_subtotal'))
+            order.amount_total = sum(order_lines.mapped('price_total'))
+            order.amount_tax = sum(order_lines.mapped('price_tax'))
 
     # dose any method call other model comute method
     @api.depends('partner_id', 'user_id')
@@ -152,6 +204,27 @@ class SaleProposal(models.Model):
             if not order.user_id:
                 order.user_id = order.partner_id.user_id or order.partner_id.commercial_partner_id.user_id or self.env.user
 
+    @api.depends('partner_id')
+    def _compute_payment_term_id(self):
+        for order in self:
+            order = order.with_company(order.company_id)
+            order.payment_term_id = order.partner_id.property_payment_term_id
+
+    @api.depends('partner_id')
+    def _compute_note(self):
+        use_invoice_terms = self.env['ir.config_parameter'].sudo(
+        ).get_param('account.use_invoice_terms')
+        if not use_invoice_terms:
+            return
+        for order in self:
+            order = order.with_company(order.company_id)
+            if order.terms_type == 'html' and self.env.company.invoice_terms_html:
+                baseurl = html_keep_url(order._get_note_url() + '/terms')
+                order.note = _('Terms & Conditions: %s', baseurl)
+            elif not is_html_empty(self.env.company.invoice_terms):
+                order.note = order.with_context(
+                    lang=order.partner_id.lang).env.company.invoice_terms
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -165,7 +238,7 @@ class SaleProposal(models.Model):
                     'sale.proposal', sequence_date=seq_date) or _("New")
         return super().create(vals_list)
 
-    def send_proposal_mail(self):
+    def action_send_proposal_mail(self):
         self.ensure_one()
         mail_template = self.env.ref(
             'sales_proposal.email_template_edi_sale_proposal')
@@ -183,13 +256,6 @@ class SaleProposal(models.Model):
             'context': ctx,
         }
 
-    # def _compute_access_url(self):
-    #     super()._compute_access_url()
-    #     for order in self:
-    #         print("_compute_access_url")
-    #         print(order.id)
-    #         order.access_url = f'/my/orders/{order.id}'
-
     # portal.mixin override
     def _compute_access_url(self):
         super()._compute_access_url()
@@ -204,16 +270,19 @@ class SaleProposal(models.Model):
             'target': 'self',
             'url': self.get_portal_url(),
         }
-        # report = 'sales_proposal.sale_proposal_report_pdf_report'
-        # pdf_bin, unused_filetype = self.env['ir.actions.report'].with_context(
-        #     snailmail_layout=not self.id, partner_invoice_id=self.id, partner_id=self.id, lang='en_US')._render_qweb_pdf(report, self.id)
-        # print(pdf_bin)
-        # print(unused_filetype)
 
-    def sale_proposal_confirm(self):
+    def action_sale_proposal_confirm(self):
+        for proposal in self:
+            proposal.state = 'confirm'
+            proposal.date_order = fields.datetime.now()
+        self.move_to_quotation()
         print("--------------confirm--------------")
 
-    def sale_proposal_draft(self):
+    def action_sale_proposal_cancel(self):
+        for proposal in self:
+            proposal.state = 'cancel'
+
+    def action_sale_proposal_draft(self):
         for proposal in self:
             proposal.state = 'draft'
 
@@ -222,17 +291,6 @@ class SaleProposal(models.Model):
         _lines = False
         if self.proposal_line_ids:
             _lines = self.proposal_line_ids
-        # filtered(lambda line:and not line._get_downpayment_state())
-
-        # def show_line(line):
-        #     if not line.is_downpayment:
-        #         return True
-        #     elif line.display_type and down_payment_lines:
-        #         return True  # Only show the down payment section if down payments were posted
-        #     elif line in down_payment_lines:
-        #         return True  # Only show posted down payments
-        #     else:
-        #         return False
         print("_get_proposal_lines_to_report from sale proposal", type(_lines))
         return _lines
 
@@ -257,3 +315,42 @@ class SaleProposal(models.Model):
     def _get_report_base_filename(self):
         self.ensure_one()
         return '%s_Proposal' % (self.name)
+
+    def move_to_quotation(self):
+        print("move_to_quotation called----------------------------")
+        self.ensure_one()
+        if self.state == 'confirm':
+            print("move_to_quotation called if condition----------------------------")
+            print(self)
+            order_id = self.env['sale.order'].sudo().create({
+                'company_id': self.company_id.id,
+                'date_order': self.date_order,
+                'partner_id': self.partner_id.id,
+                'user_id': self.user_id.id,
+                'team_id': self.team_id.id,
+                'client_order_ref': self.client_proposal_ref,
+                'tag_ids': self.tag_ids.ids,
+                'fiscal_position_id': self.fiscal_position_id.id,
+                'origin': self.origin,
+                'campaign_id': self.campaign_id.id,
+                'medium_id': self.medium_id.id,
+                'source_id': self.source_id.id,
+                "amount_total": self.amount_total,
+                'state': 'draft'})
+            print("order created ----------------------------",
+                  order_id)
+            for line_ids in self.proposal_line_ids:
+                print(line_ids.product_id)
+                self.env['sale.order.line'].sudo().create({
+                    'name': line_ids.name,
+                    'order_id': order_id.id,
+                    'product_id': line_ids.product_id.id,
+                    'price_unit':  line_ids.price_unit,
+                    'product_uom_qty': line_ids.product_uom_qty,
+                    # 'sequence': line_ids.sequence,
+                    'price_subtotal': line_ids.price_subtotal,
+                    'currency_id': line_ids.currency_id.id
+                })
+            body = f'The sale order is created: <a href=# data-oe-model=sale.order data-oe-id={order_id.id}>{order_id.name}</a>'
+            self.message_post(body=body)
+            return True

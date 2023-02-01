@@ -6,14 +6,17 @@
         <field name="arch" type="xml">
             <form string="Proposal">
                 <header>
-                    <button name="sale_proposal_draft" data-hotkey="d" string="Draft" class="btn-primary" type="object" attrs="{'invisible': [('state', 'not in', ['send'])]}" />
-                    <button name="send_proposal_mail" string="Send by Email" type="object" class="btn-primary" data-hotkey="g" context="{'validate_analytic': True}" attrs="{'invisible': [('state', 'not in', ['draft'])]}" />
-                    <button name="sale_proposal_confirm" data-hotkey="v" string="Confirm" class="btn-primary" type="object" context="{'validate_analytic': True}" attrs="{'invisible': [('state', 'not in', ['send'])]}" />
-                    <field name="state" widget="statusbar"></field>
+                    <button name="action_sale_proposal_draft" data-hotkey="d" string="Send To Draft" type="object" attrs="{'invisible': [('state', 'not in', ['send','cancel'])]}" />
+                    <button name="action_send_proposal_mail" string="Send by Email" type="object" class="btn-primary" data-hotkey="g" attrs="{'invisible': [('state', 'not in', ['draft'])]}" />
+                    <button name="action_sale_proposal_confirm" data-hotkey="v" string="Confirm" type="object" attrs="{'invisible': [('state', 'not in', ['draft','send'])]}" />
+                    <button name="action_sale_proposal_cancel" type="object" string="Cancel" attrs="{'invisible': [('state', 'not in', ['draft', 'send'])]}" data-hotkey="z" />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,send,confirm"></field>
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="bg-danger" attrs="{'invisible': [('state', 'not in', ['cancel'])]}" />
+                    <widget name="web_ribbon" title="Confirmed" attrs="{'invisible': [('state', 'not in', ['confirm'])]}" />
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_preview_sale_proposal" type="object" class="oe_stat_button" icon="fa-globe icon">
+                        <button name="action_preview_sale_proposal" type="object" class="oe_stat_button" icon="fa-globe icon" attrs="{'invisible': [('state', 'not in', ['draft','send'])]}">
                             <div class="o_field_widget o_stat_info">
                                 <span class="o_stat_text">Customer</span>
                                 <span class="o_stat_text">Preview</span>
@@ -22,7 +25,7 @@
                     </div>
                     <div class="oe_title">
                         <field name="company_id" invisible="1"></field>
-                        <field name="state" invisible="1"></field>
+                        <field name="state"></field>
                         <field name="amount_total" invisible="1"></field>
                         <h1>
                             <field name="name" readonly="1" />
@@ -30,18 +33,21 @@
                     </div>
                     <group>
                         <group name="basic_information">
-                            <field name="partner_id" widget="res_partner_many2one" context="{'res_partner_search_mode': 'customer', 'show_address': 1, 'show_vat': True}" />
-                            <field name="partner_address" string=""></field>
-                            <field name="sale_order_template_id"></field>
+                            <field name="partner_id" widget="res_partner_many2one" attrs="{'readonly': [('state', 'in', ['cancel'])]}" context="{'res_partner_search_mode': 'customer', 'show_address': 1, 'show_vat': True}" options="{&quot;always_reload&quot;: True}" />
+                            <field name="sale_order_template_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}"></field>
                         </group>
                         <group name="dat_paymentterm">
-                            <field name="validity_date"></field>
-                            <field name="date_order"></field>
+                            <field name="validity_date" attrs="{'readonly': [('state', 'in', ['cancel'])]}"></field>
+                            <field name="date_order" attrs="{'readonly': [('state', 'in', ['cancel'])]}"></field>
+                            <field name="pricelist_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}"></field>
+                            <field name="payment_term_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}"></field>
                         </group>
                     </group>
+
                     <notebook>
+                        <!-- order line -->
                         <page string="Order Lines" name="order_lines">
-                            <field name="proposal_line_ids" widget="section_and_note_one2many">
+                            <field name="proposal_line_ids" widget="section_and_note_one2many" attrs="{'readonly': [('state', 'in', ['cancel'])]}">
                                 <tree string="Sale Proposal Lines" editable="bottom">
                                     <control>
                                         <create name="add_product_control" string="Add a product" />
@@ -49,58 +55,69 @@
                                         <create name="add_note_control" string="Add a note" context="{'default_display_type': 'line_note'}" />
                                     </control>
                                     <field name="sequence" widget="handle"></field>
-                                    <field name="product_id"></field>
-                                    <field name="name" optional="hide"></field>
-                                    <field name="product_templaet_id"></field>
+                                    <field name="product_id" widget="many2one_barcode"></field>
+                                    <field name="product_templaet_id" optional="hide"></field>
+                                    <field name="name" optional="show"></field>
+                                    <field name="product_uom_qty"></field>
                                     <field name="customer_lead" optional="hide"></field>
                                     <field name="price_unit"></field>
-                                    <field name="product_uom_qty"></field>
+                                    <field name="discount" optional="hide"></field>
+                                    <field name="tax_id" widget="many2many_tags" optional="show"></field>
                                     <field name="price_subtotal"></field>
                                 </tree>
                             </field>
+                            <group name="note_group" col="6" class="mt-2 mt-md-0">
+                                <group colspan="4">
+                                    <field colspan="2" name="note" nolabel="1" placeholder="Terms and conditions..." />
+                                </group>
+                                <group class="oe_subtotal_footer oe_right" colspan="2" name="sale_proposal_total">
+                                    <field name="tax_totals" widget="account-tax-totals-field" nolabel="1" colspan="2" readonly="1" />
+                                </group>
+                                <div class="clearfix" />
+                            </group>
                         </page>
+
+                        <!-- other info -->
                         <page string="Other Info" name="other_information">
                             <group>
                                 <group name="sales_person" string="Sales">
-                                    <field name="user_id" widget="many2one_avatar_user" />
-                                    <field name="team_id" kanban_view_ref="%(sales_team.crm_team_view_kanban)s" />
-                                    <field name="company_id" />
-                                    <label for="require_signature" string="Online confirmation" />
+                                    <field name="user_id" widget="many2one_avatar_user" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
+                                    <field name="team_id" kanban_view_ref="%(sales_team.crm_team_view_kanban)s" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
+                                    <field name="company_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
+                                    <label for="require_signature" string="Online confirmation" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                     <div>
-                                        <field name="require_signature" class="oe_inline" />
+                                        <field name="require_signature" class="oe_inline" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                         <span>Signature</span>
-                                        <field name="require_payment" class="oe_inline ms-3" />
+                                        <field name="require_payment" class="oe_inline ms-3" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                         <span>Payment</span>
                                     </div>
                                     <field name="client_proposal_ref" />
-                                    <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}" />
+                                    <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                 </group>
                                 <group name="sale_info" string="Invoicing and Payments">
                                     <label for="fiscal_position_id" />
                                     <div class="o_row">
-                                        <field name="fiscal_position_id" options="{'no_create': True}" />
+                                        <field name="fiscal_position_id" options="{'no_create': True}" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                     </div>
                                 </group>
                             </group>
                             <group>
-                                <group name="sale_shipping">
-                                    <label for="commitment_date" string="Delivery Date" />
-                                    <div name="commitment_date_div" class="o_row">
-                                        <field name="commitment_date" />
-                                    </div>
+                                <group >
                                 </group>
                                 <group string="Tracking" name="sale_reporting">
                                     <group name="technical" colspan="2" class="mb-0">
-                                        <field name="origin" />
+                                        <field name="origin" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                     </group>
                                     <group name="utm_link" colspan="2" class="mt-0">
-                                        <field name="campaign_id" />
-                                        <field name="medium_id" />
-                                        <field name="source_id" />
+                                        <field name="campaign_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
+                                        <field name="medium_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
+                                        <field name="source_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                     </group>
                                 </group>
                             </group>
                         </page>
+
+                        <!-- customer signature -->
                         <page groups="base.group_no_one" string="Customer Signature" name="customer_signature" attrs="{'invisible': [('require_signature', '=', False), ('signed_by', '=', False), ('signature', '=', False), ('signed_on', '=', False)]}">
                             <group>
                                 <field name="signed_by" />
@@ -125,7 +142,7 @@
         <field name="arch" type="xml">
             <tree string="Proposal">
                 <field name="name"></field>
-                <field name="state" widget="badge" decoration-info="state == 'draft' or state == 'send'" decoration-success="state == 'confirm'"></field>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-primary="state == 'send'" decoration-danger="state == 'cancel'" decoration-success="state == 'confirm'"></field>
             </tree>
         </field>
     </record>

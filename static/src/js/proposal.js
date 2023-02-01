@@ -1,6 +1,5 @@
 /**@odoo-module **/
 import publicWidget from "web.public.widget";
-import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { useService } from "@web/core/utils/hooks";
 var ajax = require('web.ajax');
 
@@ -9,20 +8,10 @@ publicWidget.registry.SaleProposal = publicWidget.Widget.extend({
   setup(){this.dialogService = useService("dialog");},
     selector: '.o_portal_sale_proposal_sidebar',
     events: {
-      'click #accept_button': '_onAccept',
       'click #reject_button': '_onReject',
       'change #sales_proposal_qty': '_onQty',
       'change #sales_proposal_price_unit': '_onPriceUnit',
     },
-    
-    _onAccept: function (ev) {
-      ev.preventDefault();
-      let self = this,$target = $(ev.currentTarget);
-      var $line_id = $target.attr('data-order-id');
-      console.log(ev);
-      console.log($line_id);
-      console.log("called ");
-  },
     
     _onReject: function (ev) {
       ev.preventDefault();
@@ -39,15 +28,6 @@ publicWidget.registry.SaleProposal = publicWidget.Widget.extend({
     _onQty: function (ev) {
       let self = this,$target = $(ev.currentTarget);
       var $updatedQty = parseFloat($target.val());
-      // if (parseInt($updatedQty) <= 0) {
-        //     useService("dialog").add(ConfirmationDialog, {
-        //     body: this.env._t("Are you sure that you want to remove this item?"),
-        //     confirm: () => {
-        //       console.log("confirm");
-        //     },
-        //    cancel: () => { console.log("cancel"); },
-        // });
-      // }
       var $line_id = $target.attr('data-order-id');
       var $proposal_id = $target.attr('proposal-id');
       const access_token = new URLSearchParams(window.location.search).get('access_token');
