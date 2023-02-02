@@ -19,13 +19,10 @@
             </t>
         </xpath>
     </template>
-    <!-- templete view -->
 
     <template id="portal_my_proposals" name="My Proposal">
-
         <t t-call="portal.portal_layout">
             <t t-set="breadcrumbs_searchbar" t-value="True" />
-
             <t t-call="portal.portal_searchbar">
                 <t t-set="title">Proposal</t>
             </t>
@@ -61,19 +58,13 @@
             <p t-else="">There are currently no proposals for your account.</p>
         </t>
     </template>
-    <!-- include js file -->
 
-
-    <!-- Complete page of the sale_proposal -->
     <template id="sale_proposal_portal_template" name="Sales Proposal Portal Template" inherit_id="portal.portal_sidebar" primary="True">
         <xpath expr="//div[hasclass('o_portal_sidebar')]" position="inside">
             <t t-set="o_portal_fullwidth_alert" groups="sales_team.group_sale_salesman">
-                <!-- Uses backend_url provided in rendering values -->
                 <t t-call="portal.portal_back_in_edit_mode" />
             </t>
-
             <div class="row mt16 o_portal_sale_proposal_sidebar">
-
                 <t t-call="portal.portal_record_sidebar">
                     <t t-set="classes" t-value="'col-lg-auto d-print-none '" />
                     <t t-set="title">
@@ -88,12 +79,12 @@
                                     <div class="btn-group flex-grow-1 me-1 mb-1">
                                         <a class="btn btn-secondary o_download_btn" t-att-href="sale_proposal.get_portal_url(report_type='pdf', download=True)" title="Download">
                                             <i class="fa fa-download" />
- Download</a>
+                                        Download</a>
                                     </div>
                                     <div class="btn-group flex-grow-1 mb-1">
                                         <a class="btn btn-secondary o_print_btn o_portal_invoice_print" t-att-href="sale_proposal.get_portal_url(report_type='pdf')" id="print_proposal_report" title="Print" target="_blank">
                                             <i class="fa fa-print" />
- Print</a>
+                                        Print</a>
                                     </div>
                                 </div>
                             </li>
@@ -101,7 +92,6 @@
                             <li class="navspy list-group-item ps-0 flex-grow-1" t-ignore="true" role="complementary">
                                 <ul class="nav flex-column bs-sidenav"></ul>
                             </li>
-
                             <li t-if="sale_proposal.user_id" class="list-group-item flex-grow-1">
                                 <div class="small mb-1">
                                     <strong class="text-muted">Salesperson</strong>
@@ -154,11 +144,10 @@
                 </div>
 
                 <div t-attf-class="col-12 col-lg justify-content-end" id="portal_proposal_content">
-                    <div class="card-body">
+                    <div>
                         <div t-call="sales_proposal.sale_proposal_portal_content" />
                     </div>
                     <div class="row justify-content-center text-center d-print-none pt-1 pb-4">
-
                         <t t-if="sale_proposal.state in ['send','draft']">
                             <div class="col-sm-auto mt8">
                                 <a role="button" t-att-data-order-id="sale_proposal.id" data-bs-toggle="modal" data-bs-target="#modalaccept" class="btn btn-primary" href="#">
@@ -169,12 +158,12 @@
                             <div class="col-sm-auto mt8">
                                 <a role="button" class="btn btn-secondary" href="#discussion">
                                     <i class="fa fa-comment" />
- Feedback</a>
+                                Feedback</a>
                             </div>
                             <div class="col-sm-auto mt8">
                                 <a id="reject_button" t-att-data-order-id="sale_proposal.id" class="btn btn-danger">
                                     <i class="fa fa-check" />
-                                    <t> Reject</t>
+                                    <t>Reject</t>
                                 </a>
                             </div>
                         </t>
@@ -187,7 +176,7 @@
                         </t>
                     </div>
                 </div>
-            </div>            <!-- // #quote_content -->
+            </div>
         </xpath>
     </template>
 
@@ -205,12 +194,10 @@
             <!-- Intro -->
             <div id="introduction" class="pb-2 pt-3 card-header bg-white">
                 <h2 class="my-0 ">
-                Proposal <em t-out="sale_proposal.name" />
+                    Proposal <em t-out="sale_proposal.name" />
                 </h2>
             </div>
-
             <div t-attf-class="#{'card-body' if report_type == 'html' else ''}">
-
                 <!-- Informations -->
                 <div id="informations">
                     <div class="row" id="so_date">
@@ -218,6 +205,7 @@
                             <t t-if="sale_proposal.state in ['send', 'confirm', 'draft']">
                                 <strong>Proposal Date:</strong>
                             </t>
+                            <b>Proposal Date :</b>
                             <span t-field="sale_proposal.date_order" t-options='{"widget": "date"}' />
                         </div>
                         <div class="mb-3 col-6" t-if="sale_proposal.validity_date">
@@ -225,21 +213,16 @@
                             <span t-field="sale_proposal.validity_date" t-options='{"widget": "date"}' />
                         </div>
                     </div>
-                    <div class="row" id="custome_address">
-                        <div class="col-lg-6">
-                            <strong class="d-block mb-1">
-                                Customer Address:
-                            </strong>
-                            <div class="col-lg-5">
-                                <address t-field="sale_proposal.partner_address" />
+                    <div class="col-lg-6">
+                        <strong class="d-block mb-1">
+                            <div>
+                            Invoicing and Shipping Address:
                             </div>
-                        </div>
+                        </strong>
+                        <address t-field="sale_proposal.partner_id" t-options='{"widget": "contact", "fields": ["address", "name"], "no_marker": True}' />
                     </div>
                     <section id="details" style="page-break-inside: auto;" class="mt32">
                         <h3 id="details">Pricing</h3>
-
-                        <!-- <t t-set="display_discount" t-value="True in [line.discount > 0 for line in sale_proposal.order_line]" /> -->
-
                         <table t-att-data-order-id="sale_proposal.id" t-att-data-token="sale_proposal.access_token" class="table table-sm" id="sales_proposal_table">
                             <thead class="bg-100">
                                 <tr>
@@ -255,48 +238,55 @@
                                 </tr>
                             </thead>
                             <tbody class="sale_tbody">
-                                <t t-set="current_subtotal" t-value="0" />
                                 <t t-set="lines_to_report" t-value="sale_proposal._get_proposal_lines_to_report()" />
-
-                                <t t-foreach="lines_to_report" t-as="line">
-
-                                    <tr class="bg-white" t-att-data-order-id="line.id">
-                                        <!-- <t t-if="not line.display_type"> -->
+                                <t t-foreach="lines_to_report.sorted(key=lambda k: k.sequence)" t-as="line">
+                                    <tr t-att-class="'bg-200 fw-bold o_line_section' if line.display_type == 'line_section' else 'fst-italic o_line_note' if line.display_type == 'line_note' else 'bg-white'" t-att-data-order-id="line.id">
                                         <td id="product_name">
                                             <span t-out ="line.name" />
                                         </td>
-                                        <td class="text-end ">
-                                            <t t-if="sale_proposal.state in ['send']">
-                                                <input type="number" inputmode="numeric" id="sales_proposal_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
-                                            </t>
-                                            <t t-else="">
-                                                <span t-out ="line.product_uom_qty" />
-                                            </t>
-                                        </td>
-                                        <td class="text-end">
-                                            <t t-if="sale_proposal.state in ['send']">
-                                                <input type="number" inputmode="numeric" id="sales_proposal_price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
-                                            </t>
-                                            <t t-else="">
-                                                <span t-out ="line.price_unit" />
-                                            </t>
-                                        </td>
-                                        <td class="text-end">
-                                            <div >
-                                                <!-- <input type="text" t-att-value="line.price_unit" class="fa text-end" /> -->
-                                                <p id="price_subtotel" t-att-data-order-id="line.id" t-out ="line.price_subtotal" />
-                                            </div>
-                                        </td>
+                                        <t t-if="not line.display_type">
+                                            <td class="text-end">
+                                                <t t-if="sale_proposal.state in ['send']">
+                                                    <input type="number" inputmode="numeric" id="sales_proposal_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
+                                                </t>
+                                                <t t-else="">
+                                                    <span t-out ="line.product_uom_qty" />
+                                                </t>
+                                            </td>
+                                            <td class="text-end">
+                                                <t t-if="sale_proposal.state in ['send']">
+                                                    <input type="number" inputmode="numeric" id="sales_proposal_price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
+                                                </t>
+                                                <t t-else="">
+                                                    <span t-out ="line.price_unit" />
+                                                </t>
+                                            </td>
+                                            <td class="text-end">
+                                                <div >
+                                                    <p id="price_subtotel" t-att-data-order-id="line.id" t-out ="line.price_subtotal" />
+                                                </div>
+                                            </td>
+                                        </t>
+                                        <t t-else="">
+                                            <td colspan="99">
+                                            </td>
+                                        </t>
                                     </tr>
                                 </t>
+                                <tr class="is-subtotal text-end">
+                                    <td colspan="99">
+                                        <strong class="mr16">Subtotal</strong>
+                                        <span t-field="sale_proposal.amount_untaxed" />
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
-
                         <div id="total" class="row" name="total" style="page-break-inside: avoid;">
-                            <div class="text-end col-8">
-                        Total :</div>
-                            <div class="text-end col-4 ">
-                                <span name="amount_total" t-field="sale_proposal.amount_total" />
+                            <div t-attf-class="#{'col-6' if report_type != 'html' else 'col-sm-7 col-md-6'} ms-auto">
+                                <table class="table table-sm">
+                                    <t t-set="tax_totals" t-value="sale_proposal.tax_totals" />
+                                    <t t-call="account.document_tax_totals" />
+                                </table>
                             </div>
                         </div>
                     </section>
@@ -310,6 +300,20 @@
                             </div>
                         </div>
                     </section>
+                    <t t-if="sale_proposal.note">
+                        <section id="terms" class="mt-5">
+                            <h3 class="">Terms &amp; Conditions</h3>
+                            <hr class="mt-0 mb-1" />
+                            <span t-field="sale_proposal.note" />
+                        </section>
+                    </t>
+                    <t t-if="sale_proposal.payment_term_id">
+                        <section t-if="sale_proposal.payment_term_id" class="mt-5">
+                            <h3 class="">Payment terms</h3>
+                            <hr class="mt-0 mb-1" />
+                            <span t-field="sale_proposal.payment_term_id" />
+                        </section>
+                    </t>
                 </div>
             </div>
         </div>

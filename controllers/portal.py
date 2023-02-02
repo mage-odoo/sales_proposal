@@ -83,32 +83,33 @@ class CustomerPortal(portal.CustomerPortal):
     @http.route(['/my/proposal/<int:order_id>'], type='http', auth="public", website=True)
     def portal_proposal_page(self, order_id, report_type=None, access_token=None, message=False, download=False, **kw):
         try:
-            order_sudo = self._document_check_access(
+            proposal_sudo = self._document_check_access(
                 'sale.proposal', order_id, access_token=access_token)
         except (AccessError, MissingError):
             return request.redirect('/my')
         if report_type in ('html', 'pdf', 'text'):
-            return self._show_report(model=order_sudo, report_type=report_type, report_ref='sales_proposal.sale_proposal_report_pdf_report', download=download)
-        backend_url = f'/web#model={order_sudo._name}'\
-            f'&id={order_sudo.id}'\
-            f'&action={order_sudo._get_portal_return_action().id}'\
+            return self._show_report(model=proposal_sudo, report_type=report_type, report_ref='sales_proposal.sale_proposal_report_pdf_report', download=download)
+        backend_url = f'/web#model={proposal_sudo._name}'\
+            f'&id={proposal_sudo.id}'\
+            f'&action={proposal_sudo._get_portal_return_action().id}'\
             f'&view_type=form'
         values = {
-            'sale_proposal': order_sudo,
+            'sale_proposal': proposal_sudo,
             'message': message,
             'report_type': 'html',
             'backend_url': backend_url,
-            'res_company': order_sudo.company_id,  # Used to display correct company logo
+            # Used to display correct company logo
+            'res_company': proposal_sudo.company_id,
         }
         return request.render("sales_proposal.sale_proposal_portal_template", values)
 
     @http.route(['/my/proposal/<int:order_id>/update'], type='json', auth="public", website=True)
     def portal_update_page(self, order_id, access_token=None, data=None, **kw):
         try:
-            order_sudo = self._document_check_access(
+            proposal_sudo = self._document_check_access(
                 'sale.proposal', order_id, access_token=access_token)
             if data['field'] in ['product_uom_qty', 'price_unit']:
-                order_line_sudo = order_sudo.proposal_line_ids.filtered(
+                order_line_sudo = proposal_sudo.proposal_line_ids.filtered(
                     lambda lines: lines.id == int(data['line_id']))
                 if (data['field'] == 'product_uom_qty' and int(data['value']) == 0):
                     data['value'] = 1
@@ -119,6 +120,7 @@ class CustomerPortal(portal.CustomerPortal):
 
     @http.route(['/my/proposal/<int:order_id>/reject'], type='json', auth="public", website=True)
     def portal_reject_page(self, order_id, access_token=None, data=None, **kw):
+        print("reject method called")
         if data['proposal_id']:
             proposal_id = request.env['sale.proposal'].browse(
                 int(data['proposal_id']))
@@ -129,12 +131,12 @@ class CustomerPortal(portal.CustomerPortal):
         access_token = access_token or request.httprequest.args.get(
             'access_token')
         try:
-            order_sudo = self._document_check_access(
+            proposal_sudo = self._document_check_access(
                 'sale.proposal', order_id, access_token=access_token)
         except (AccessError, MissingError):
             return {'error': _('Invalid order.')}
         try:
-            order_sudo.write({
+            proposal_sudo.write({
                 'state': 'confirm',
                 'date_order': fields.datetime.now(),
                 'signed_by': name,
@@ -144,18 +146,18 @@ class CustomerPortal(portal.CustomerPortal):
         except (TypeError, binascii.Error) as e:
             return {'error': _('Invalid signature data.')}
         pdf = request.env['ir.actions.report'].sudo()._render_qweb_pdf(
-            'sales_proposal.sale_proposal_report_pdf_report', [order_sudo.id])[0]
+            'sales_proposal.sale_proposal_report_pdf_report', [proposal_sudo.id])[0]
 
         _message_post_helper(
             'sale.proposal',
-            order_sudo.id,
+            proposal_sudo.id,
             _('Proposal signed by %s', name),
-            attachments=[('%s.pdf' % order_sudo.name, pdf)],
+            attachments=[('%s.pdf' % proposal_sudo.name, pdf)],
             token=access_token,
         )
-        order_sudo.move_to_quotation()
+        proposal_sudo.move_to_quotation()
         query_string = "&message=sign_ok"
         return {
             'force_refresh': True,
-            'redirect_url': order_sudo.get_portal_url(query_string=query_string)
+            'redirect_url': proposal_sudo.get_portal_url(query_string=query_string)
         }

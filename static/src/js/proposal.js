@@ -24,7 +24,8 @@ publicWidget.registry.SaleProposal = publicWidget.Widget.extend({
       }
       var done=ajax.jsonRpc('/my/proposal/'+dict['proposal_id']+'/reject', 'call', {'data': dict, 'access_token':dict['access_token']});
         done.then(setTimeout(function(){ location.reload(); }, 200))
-    },
+  },
+    
     _onQty: function (ev) {
       let self = this,$target = $(ev.currentTarget);
       var $updatedQty = parseFloat($target.val());
@@ -44,7 +45,6 @@ publicWidget.registry.SaleProposal = publicWidget.Widget.extend({
     _onPriceUnit: function (ev) {
       let self = this,$target = $(ev.currentTarget);
       var $updatedUnitPrice = parseFloat($target.val());
-
       var $line_id = $target.attr('data-order-id');
       var $proposal_id = $target.attr('proposal-id');
       const access_token = new URLSearchParams(window.location.search).get('access_token');

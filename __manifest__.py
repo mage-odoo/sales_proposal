@@ -11,16 +11,15 @@
     'data': [
         'security/ir.model.access.csv',
 
+        'report/sale_proposal_report.xml',
+        'report/ir_actions_report_templates.xml',
+
         'data/ir_sequence_data.xml',
         'data/mail_template_data.xml',
 
         'views/sale_portal_templates.xml',
         'views/sale_proposal_view.xml',
         'views/sale.xml',
-
-        'report/ir_actions_report_templates.xml',
-        'report/sale_proposal_report.xml',
-
     ],
     'installable': True,
     'license': 'LGPL-3',

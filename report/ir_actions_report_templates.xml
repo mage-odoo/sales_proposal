@@ -46,30 +46,43 @@
                     <tbody class="sale_tbody">
                         <t t-set="current_subtotal" t-value="0" />
                         <t t-set="lines_to_report" t-value="doc.proposal_line_ids" />
-                        <t t-foreach="lines_to_report" t-as="line">
+                        <t t-foreach="lines_to_report.sorted(key=lambda k: k.sequence)" t-as="line">
                             <t t-set="current_subtotal" t-value="current_subtotal + line.price_subtotal" groups="account.group_show_line_subtotals_tax_excluded" />
-                            <tr t-att-class="'bg-200 fw-bold o_line_section'">
+                            <tr t-att-class="'bg-200 fw-bold o_line_section' if line.display_type == 'line_section' else 'fst-italic o_line_note' if line.display_type == 'line_note' else 'bg-white'">
                                 <td name="td_name">
                                     <span t-out="line.name" />
                                 </td>
-                                <td name="td_quantity" class="text-end">
-                                    <span t-out="line.product_uom_qty" />
-                                </td>
-                                <td name="td_priceunit" class="text-end">
-                                    <span t-out="line.price_unit" />
-                                </td>
-                                <td name="td_priceunit" class="text-end">
-                                    <span t-out="line.price_subtotal" />
-                                </td>
+                                <t t-if="not line.display_type">
+                                    <td name="td_quantity" class="text-end">
+                                        <span t-out="line.product_uom_qty" />
+                                    </td>
+                                    <td name="td_priceunit" class="text-end">
+                                        <span t-out="line.price_unit" />
+                                    </td>
+                                    <td name="td_priceunit" class="text-end">
+                                        <span t-out="line.price_subtotal" />
+                                    </td>
+                                </t>
+                                <t t-else="">
+                                    <td colspan="99">
+                                    </td>
+                                </t>
                             </tr>
                         </t>
+                        <tr class="is-subtotal text-end">
+                            <td colspan="99">
+                                <strong class="mr16">Subtotal</strong>
+                                <span t-field="doc.amount_untaxed" />
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
                 <div id="total" class="row" name="total" style="page-break-inside: avoid;">
-                    <div class="text-end col-8">
-                        Total :</div>
-                    <div class="text-end col-4 ">
-                        <span name="amount_total" t-out="doc.amount_total" />
+                    <div class="col-6 ms-auto">
+                        <table class="table table-sm">
+                            <t t-set="tax_totals" t-value="doc.tax_totals" />
+                            <t t-call="account.document_tax_totals" />
+                        </table>
                     </div>
                 </div>
                 <div t-if="doc.signature" class="mt-4 ml64 mr4" name="signature">
@@ -82,6 +95,14 @@
                     <div class="offset-8 text-center">
                         <p t-out="doc.signed_by" />
                     </div>
+                </div>
+                <div class="mt-4 ml64 mr4">
+                    <t t-if="doc.note">
+                        <span t-field="doc.note" />
+                    </t>
+                    <t t-if="doc.payment_term_id">
+                       Payment terms : <span t-field="doc.payment_term_id" />
+                    </t>
                 </div>
             </div>
         </t>
