@@ -24,7 +24,7 @@
                     </div>
                     <div t-if="doc.validity_date" class="col-auto col-3 mw-100 mb-2" name="expiration_date">
                         <strong>Expiration:</strong>
-                        <p class="m-0" t-out="doc.validity_date" />
+                        <p class="m-0" t-out="doc.validity_date" t-options='{"widget": "date"}' />
                     </div>
                     <div t-if="doc.user_id.name" class="col-auto col-3 mw-100 mb-2">
                         <strong>Salesperson:</strong>
@@ -39,7 +39,6 @@
                             <th name="th_priceunit" class="text-end">Unit Price</th>
                             <th name="th_subtotal" class="text-end">
                                 <span groups="account.group_show_line_subtotals_tax_excluded">Amount</span>
-                                <span groups="account.group_show_line_subtotals_tax_included">Total Price</span>
                             </th>
                         </tr>
                     </thead>
@@ -60,7 +59,7 @@
                                         <span t-out="line.price_unit" />
                                     </td>
                                     <td name="td_priceunit" class="text-end">
-                                        <span t-out="line.price_subtotal" />
+                                        <span t-field="line.price_subtotal" />
                                     </td>
                                 </t>
                                 <t t-else="">

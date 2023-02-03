@@ -98,7 +98,6 @@ class CustomerPortal(portal.CustomerPortal):
             'message': message,
             'report_type': 'html',
             'backend_url': backend_url,
-            # Used to display correct company logo
             'res_company': proposal_sudo.company_id,
         }
         return request.render("sales_proposal.sale_proposal_portal_template", values)
@@ -118,15 +117,25 @@ class CustomerPortal(portal.CustomerPortal):
         except (AccessError, MissingError):
             print("Missing or AccessError on /my/proposal/%s/update" % (order_id))
 
-    @http.route(['/my/proposal/<int:order_id>/reject'], type='json', auth="public", website=True)
-    def portal_reject_page(self, order_id, access_token=None, data=None, **kw):
+    @http.route(['/my/proposal/<int:order_id>/reject'], type='http', auth="public", website=True)
+    def portal_reject_page(self, order_id, access_token=None, name=None):
         print("reject method called")
-        if data['proposal_id']:
-            proposal_id = request.env['sale.proposal'].browse(
-                int(data['proposal_id']))
-            proposal_id.write({'state': 'cancel'})
+        access_token = access_token or request.httprequest.args.get(
+            'access_token')
+        try:
+            proposal_sudo = self._document_check_access(
+                'sale.proposal', order_id, access_token=access_token)
+        except (AccessError, MissingError):
+            return {'error': _('Invalid order.')}
+        try:
+            proposal_sudo.write({'state': 'cancel'})
+            print(proposal_sudo)
+        except (TypeError):
+            print("%s data not deletede " % (proposal_sudo))
+        message = "&message=rejected"
+        return request.redirect(proposal_sudo.get_portal_url(query_string=message))
 
-    @http.route(['/my/proposal/<int:order_id>/accept'], type='json', auth="public", website=True)
+    @ http.route(['/my/proposal/<int:order_id>/accept'], type='json', auth="public", website=True)
     def portal_accept__page(self, order_id, access_token=None, name=None, signature=None):
         access_token = access_token or request.httprequest.args.get(
             'access_token')

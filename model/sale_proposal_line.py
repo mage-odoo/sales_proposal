@@ -33,21 +33,19 @@ class SaleProposalLine(models.Model):
         compute='_compute_price_unit',
         store=True,
         required=True,
-        readonly=False,
-        tracking=True)
+        readonly=False)
     product_uom_qty = fields.Float(
         'Quantity',
         default="1.0",
         required=True,
         compute="_compute_product_uom_qty",
-        store=True, readonly=False, tracking=True)
+        store=True, readonly=False)
     tax_id = fields.Many2many(
         comodel_name='account.tax',
         string="Taxes",
         store=True, readonly=False)
     discount = fields.Float(
         string="Discount (%)",
-        compute='_compute_discount',
         digits='Discount',
         store=True, readonly=False, default="0.0")
     currency_id = fields.Many2one(
@@ -58,7 +56,7 @@ class SaleProposalLine(models.Model):
     price_subtotal = fields.Monetary(
         string="Subtotal",
         compute='_compute_amount',
-        store=True, tracking=True)
+        store=True)
     price_tax = fields.Float(
         string="Total Tax",
         compute='_compute_amount',
@@ -78,7 +76,6 @@ class SaleProposalLine(models.Model):
     def _compute_product_uom_qty(self):
         for line in self:
             if line.display_type:
-                print(line.display_type)
                 line.product_uom_qty = 0.0
 
     @api.depends('product_id')
@@ -86,34 +83,13 @@ class SaleProposalLine(models.Model):
         for line in self:
             line.name = line.product_id.name
 
-    @api.depends('product_id', 'product_uom_qty')
+    @api.depends('product_id')
     def _compute_price_unit(self):
         for line in self:
             if line.display_type:
                 line.price_unit = 0
                 return
             line.price_unit = line.product_id.list_price
-
-    @api.depends('product_id', 'product_uom_qty')
-    def _compute_discount(self):
-        for line in self:
-            if not line.product_id or line.display_type:
-                line.discount = 0.0
-            if not (
-                line.proposal_id.pricelist_id
-                and line.proposal_id.pricelist_id.discount_policy == 'without_discount'
-            ):
-                continue
-            line.discount = 0.0
-            if not line.pricelist_item_id:
-                continue
-            line = line.with_company(line.company_id)
-            pricelist_price = line._get_pricelist_price()
-            base_price = line._get_pricelist_price_before_discount()
-            if base_price != 0:
-                discount = (base_price - pricelist_price) / base_price * 100
-                if (discount > 0 and base_price > 0) or (discount < 0 and base_price < 0):
-                    line.discount = discount
 
     def _convert_to_tax_base_line_dict(self):
         self.ensure_one()
@@ -129,9 +105,11 @@ class SaleProposalLine(models.Model):
             price_subtotal=self.price_subtotal,
         )
 
-    @api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id')
+    @ api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id')
     def _compute_amount(self):
         for line in self:
+            if line.discount > 100:
+                line.discount = 100
             tax_results = self.env['account.tax']._compute_taxes(
                 [line._convert_to_tax_base_line_dict()])
             totals = list(tax_results['totals'].values())[0]

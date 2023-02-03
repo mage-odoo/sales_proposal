@@ -34,7 +34,6 @@
                     <group>
                         <group name="basic_information">
                             <field name="partner_id" widget="res_partner_many2one" attrs="{'readonly': [('state', 'in', ['cancel'])]}" context="{'res_partner_search_mode': 'customer', 'show_address': 1, 'show_vat': True}" options="{&quot;always_reload&quot;: True}" />
-                            <field name="sale_order_template_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}"></field>
                         </group>
                         <group name="dat_paymentterm">
                             <field name="validity_date" attrs="{'readonly': [('state', 'in', ['cancel'])]}"></field>
@@ -83,7 +82,6 @@
                             <group>
                                 <group name="sales_person" string="Sales">
                                     <field name="user_id" widget="many2one_avatar_user" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
-                                    <field name="team_id" kanban_view_ref="%(sales_team.crm_team_view_kanban)s" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                     <field name="company_id" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                     <label for="require_signature" string="Online confirmation" attrs="{'readonly': [('state', 'in', ['cancel'])]}" />
                                     <div>

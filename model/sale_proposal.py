@@ -36,11 +36,7 @@ class SaleProposal(models.Model):
         string="Payment Terms",
         compute='_compute_payment_term_id',
         store=True,
-        readonly=False, precompute=True,
-        check_company=True,  # Unrequired company
-        domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
-    sale_order_template_id = fields.Many2one(
-        'sale.order.template', 'Proposal Template')
+        readonly=False, precompute=True)
     state = fields.Selection(
         selection=[
             ('draft', "Draft"),
@@ -68,13 +64,6 @@ class SaleProposal(models.Model):
         string="Salesperson",
         compute='_compute_user_id',
         store=True, readonly=False, precompute=True, index=True,
-        tracking=True)
-    team_id = fields.Many2one(
-        comodel_name='crm.team',
-        string="Sales Team",
-        compute='_compute_team_id',
-        store=True, readonly=False, precompute=True, ondelete="set null",
-        change_default=True, check_company=True,  # Unrequired company
         tracking=True)
     require_signature = fields.Boolean(
         string="Online Signature",
@@ -106,24 +95,10 @@ class SaleProposal(models.Model):
     campaign_id = fields.Many2one(ondelete='set null')
     medium_id = fields.Many2one(ondelete='set null')
     source_id = fields.Many2one(ondelete='set null')
-    signature = fields.Image(
-        string="Signature",
-        copy=False, attachment=True, max_width=1024, max_height=1024)
-    signed_by = fields.Char(
-        string="Signed By", copy=False)
-    signed_on = fields.Datetime(
-        string="Signed On", copy=False)
-    amount_total = fields.Monetary(
-        'Amount Total', default="0.0",
-        currency_field='currency_id', store=True,
-        compute='_compute_amounts')
     currency_id = fields.Many2one(
         'res.currency',
         string='Currency', required=True,
         default=lambda self: self.env.user.company_id.currency_id)
-    tax_totals = fields.Binary(
-        compute='_compute_tax_totals',
-        exportable=False)
     amount_untaxed = fields.Monetary(
         string="Untaxed Amount",
         store=True,
@@ -133,7 +108,36 @@ class SaleProposal(models.Model):
         string="Taxes",
         store=True,
         compute='_compute_amounts')
+    amount_total = fields.Monetary(
+        'Amount Total', default="0.0",
+        currency_field='currency_id', store=True,
+        compute='_compute_amounts')
+    tax_totals = fields.Binary(
+        compute='_compute_tax_totals',
+        exportable=False)
+    signature = fields.Image(
+        string="Signature",
+        copy=False, attachment=True, max_width=1024, max_height=1024)
+    signed_by = fields.Char(
+        string="Signed By", copy=False)
+    signed_on = fields.Datetime(
+        string="Signed On", copy=False)
 
+    def _convert_to_tax_base_line_dict(self):
+        self.ensure_one()
+        return self.env['account.tax']._convert_to_tax_base_line_dict(
+            self,
+            partner=self.order_id.partner_id,
+            currency=self.order_id.currency_id,
+            product=self.product_id,
+            taxes=self.tax_id,
+            price_unit=self.price_unit,
+            quantity=self.product_uom_qty,
+            discount=self.discount,
+            price_subtotal=self.price_subtotal,
+        )
+
+    # compute methods
     @api.depends('partner_id', 'company_id')
     def _compute_fiscal_position_id(self):
         cache = {}
@@ -163,26 +167,6 @@ class SaleProposal(models.Model):
         for proposal in self:
             proposal.require_payment = proposal.company_id.portal_confirmation_pay
 
-    @api.depends('proposal_line_ids.price_subtotal')
-    def _compute_amounts(self):
-        for proposal in self:
-            proposal.amount_total = sum(
-                proposal.proposal_line_ids.mapped('price_subtotal'))
-
-    def _convert_to_tax_base_line_dict(self):
-        self.ensure_one()
-        return self.env['account.tax']._convert_to_tax_base_line_dict(
-            self,
-            partner=self.order_id.partner_id,
-            currency=self.order_id.currency_id,
-            product=self.product_id,
-            taxes=self.tax_id,
-            price_unit=self.price_unit,
-            quantity=self.product_uom_qty,
-            discount=self.discount,
-            price_subtotal=self.price_subtotal,
-        )
-
     @api.depends('proposal_line_ids.tax_id', 'proposal_line_ids.price_unit', 'amount_total', 'amount_untaxed', 'currency_id')
     def _compute_tax_totals(self):
         for proposal in self:
@@ -198,24 +182,8 @@ class SaleProposal(models.Model):
             proposal_line = proposal.proposal_line_ids
             proposal.amount_untaxed = sum(
                 proposal_line.mapped('price_subtotal'))
-            proposal.amount_total = sum(proposal_line.mapped('price_total'))
             proposal.amount_tax = sum(proposal_line.mapped('price_tax'))
-
-    @api.depends('partner_id', 'user_id')
-    def _compute_team_id(self):
-        cached_teams = {}
-        for proposal in self:
-            default_team_id = self.env.context.get(
-                'default_team_id', False) or proposal.team_id.id or proposal.partner_id.team_id.id
-            user_id = proposal.user_id.id
-            company_id = proposal.company_id.id
-            key = (default_team_id, user_id, company_id)
-            if key not in cached_teams:
-                cached_teams[key] = self.env['crm.team'].with_context(
-                    default_team_id=default_team_id
-                )._get_default_team_id(
-                    user_id=user_id, domain=[('company_id', 'in', [company_id, False])])
-            proposal.team_id = cached_teams[key]
+            proposal.amount_total = proposal.amount_tax + proposal.amount_untaxed
 
     @api.depends('partner_id')
     def _compute_user_id(self):
@@ -226,36 +194,29 @@ class SaleProposal(models.Model):
     @api.depends('partner_id')
     def _compute_payment_term_id(self):
         for proposal in self:
-            proposal = proposal.with_company(proposal.company_id)
-            proposal.payment_term_id = proposal.partner_id.property_payment_term_id
+            proposal.payment_term_id = proposal.partner_id.commercial_partner_id.property_payment_term_id.id or ''
 
     @api.depends('partner_id')
     def _compute_note(self):
-        use_invoice_terms = self.env['ir.config_parameter'].sudo(
-        ).get_param('account.use_invoice_terms')
-        if not use_invoice_terms:
-            return
         for proposal in self:
-            proposal = proposal.with_company(proposal.company_id)
-            if proposal.terms_type == 'html' and self.env.company.invoice_terms_html:
-                baseurl = html_keep_url(proposal._get_note_url() + '/terms')
-                proposal.note = _('Terms & Conditions: %s', baseurl)
-            elif not is_html_empty(self.env.company.invoice_terms):
-                proposal.note = proposal.with_context(
-                    lang=proposal.partner_id.lang).env.company.invoice_terms
+            use_invoice_terms = self.env['ir.config_parameter'].get_param(
+                'account.use_invoice_terms')
+            if use_invoice_terms:
+                proposal.note = self.env.company.invoice_terms or ''
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            if 'company_id' in vals:
-                self = self.with_company(vals['company_id'])
-            if vals.get('name', _("New")) == _("New"):
-                seq_date = fields.Datetime.context_timestamp(
-                    self, fields.Datetime.to_datetime(vals['date_order'])
-                ) if 'date_order' in vals else None
-                vals['name'] = self.env['ir.sequence'].next_by_code(
-                    'sale.proposal', sequence_date=seq_date) or _("New")
-        return super().create(vals_list)
+    # portal.mixin override
+    def _compute_access_url(self):
+        super()._compute_access_url()
+        for proposal in self:
+            proposal.access_url = f'/my/proposal/{proposal.id}'
+
+    def action_preview_sale_proposal(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_url',
+            'target': 'self',
+            'url': self.get_portal_url(),
+        }
 
     def action_send_proposal_mail(self):
         self.ensure_one()
@@ -275,20 +236,6 @@ class SaleProposal(models.Model):
             'context': ctx,
         }
 
-    # portal.mixin override
-    def _compute_access_url(self):
-        super()._compute_access_url()
-        for proposal in self:
-            proposal.access_url = f'/my/proposal/{proposal.id}'
-
-    def action_preview_sale_proposal(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_url',
-            'target': 'self',
-            'url': self.get_portal_url(),
-        }
-
     def action_sale_proposal_confirm(self):
         for proposal in self:
             proposal.state = 'confirm'
@@ -303,6 +250,13 @@ class SaleProposal(models.Model):
         for proposal in self:
             proposal.state = 'draft'
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            vals['name'] = self.env['ir.sequence'].next_by_code(
+                'sale.proposal') or _("New")
+        return super().create(vals_list)
+
     def _get_proposal_lines_to_report(self):
         _lines = False
         if self.proposal_line_ids:
@@ -314,19 +268,12 @@ class SaleProposal(models.Model):
         self.ensure_one()
         return self.env.ref('sales_proposal.sale_proposal_action')
 
-    def _has_to_be_confirm(self, include_draft=False):
-        if include_draft:
-            pass
-
-    def _has_to_be_paid(self, include_draft=False):
-        if include_draft:
-            pass
-        return True
-
+    # Downloading proposal on portal
     def _get_report_base_filename(self):
         self.ensure_one()
         return '%s_Proposal' % (self.name)
 
+    # Proposal send to sale order
     def move_to_quotation(self):
         self.ensure_one()
         if self.state == 'confirm':
@@ -335,7 +282,6 @@ class SaleProposal(models.Model):
                 'date_order': self.date_order,
                 'partner_id': self.partner_id.id,
                 'user_id': self.user_id.id,
-                'team_id': self.team_id.id,
                 'client_order_ref': self.client_proposal_ref,
                 'tag_ids': self.tag_ids.ids,
                 'fiscal_position_id': self.fiscal_position_id.id,
@@ -349,7 +295,6 @@ class SaleProposal(models.Model):
                 "tax_totals": self.tax_totals,
                 "payment_term_id": self.payment_term_id.id,
                 "note": self.note,
-                'sale_order_template_id': self.sale_order_template_id.id,
                 'validity_date': self.validity_date,
                 'state': 'draft'})
             print("clear Quatation")

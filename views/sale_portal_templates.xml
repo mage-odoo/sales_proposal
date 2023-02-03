@@ -161,10 +161,13 @@
                                 Feedback</a>
                             </div>
                             <div class="col-sm-auto mt8">
-                                <a id="reject_button" t-att-data-order-id="sale_proposal.id" class="btn btn-danger">
-                                    <i class="fa fa-check" />
-                                    <t>Reject</t>
-                                </a>
+                                <form id="reject" method="POST" t-att-data-order-id="sale_proposal.id" t-att-data-token="sale_proposal.access_token" t-att-action="sale_proposal.get_portal_url(suffix='/reject')">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()" />
+                                    <button t-att-data-order-id="sale_proposal.id" class="btn btn-danger">
+                                        <i class="fa fa-check" />
+                                        <t>Reject</t>
+                                    </button>
+                                </form>
                             </div>
                         </t>
                     </div>
@@ -191,6 +194,14 @@
                     Your Proposal has been confirmed.
                 </t>
             </div>
+            <div t-if="message == 'rejected'" t-attr-ul="sale_proposal.get_portal_url()" class="alert alert-danger alert-dismissible d-print-none" role="status">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <strong>Rejected !</strong>
+                <br />
+                <t >
+                    Your Proposal has been Rejected.
+                </t>
+            </div>
             <!-- Intro -->
             <div id="introduction" class="pb-2 pt-3 card-header bg-white">
                 <h2 class="my-0 ">
@@ -205,7 +216,6 @@
                             <t t-if="sale_proposal.state in ['send', 'confirm', 'draft']">
                                 <strong>Proposal Date:</strong>
                             </t>
-                            <b>Proposal Date :</b>
                             <span t-field="sale_proposal.date_order" t-options='{"widget": "date"}' />
                         </div>
                         <div class="mb-3 col-6" t-if="sale_proposal.validity_date">
@@ -239,39 +249,41 @@
                             </thead>
                             <tbody class="sale_tbody">
                                 <t t-set="lines_to_report" t-value="sale_proposal._get_proposal_lines_to_report()" />
-                                <t t-foreach="lines_to_report.sorted(key=lambda k: k.sequence)" t-as="line">
-                                    <tr t-att-class="'bg-200 fw-bold o_line_section' if line.display_type == 'line_section' else 'fst-italic o_line_note' if line.display_type == 'line_note' else 'bg-white'" t-att-data-order-id="line.id">
-                                        <td id="product_name">
-                                            <span t-out ="line.name" />
-                                        </td>
-                                        <t t-if="not line.display_type">
-                                            <td class="text-end">
-                                                <t t-if="sale_proposal.state in ['send']">
-                                                    <input type="number" inputmode="numeric" id="sales_proposal_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
-                                                </t>
-                                                <t t-else="">
-                                                    <span t-out ="line.product_uom_qty" />
-                                                </t>
+                                <t t-if="lines_to_report">
+                                    <t t-foreach="lines_to_report.sorted(key=lambda k: k.sequence)" t-as="line">
+                                        <tr t-att-class="'bg-200 fw-bold o_line_section' if line.display_type == 'line_section' else 'fst-italic o_line_note' if line.display_type == 'line_note' else 'bg-white'" t-att-data-order-id="line.id">
+                                            <td id="product_name">
+                                                <span t-out ="line.name" />
                                             </td>
-                                            <td class="text-end">
-                                                <t t-if="sale_proposal.state in ['send']">
-                                                    <input type="number" inputmode="numeric" id="sales_proposal_price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
-                                                </t>
-                                                <t t-else="">
-                                                    <span t-out ="line.price_unit" />
-                                                </t>
-                                            </td>
-                                            <td class="text-end">
-                                                <div >
-                                                    <p id="price_subtotel" t-att-data-order-id="line.id" t-out ="line.price_subtotal" />
-                                                </div>
-                                            </td>
-                                        </t>
-                                        <t t-else="">
-                                            <td colspan="99">
-                                            </td>
-                                        </t>
-                                    </tr>
+                                            <t t-if="not line.display_type">
+                                                <td class="text-end">
+                                                    <t t-if="sale_proposal.state in ['send']">
+                                                        <input type="number" inputmode="numeric" id="sales_proposal_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
+                                                    </t>
+                                                    <t t-else="">
+                                                        <span t-out ="line.product_uom_qty" />
+                                                    </t>
+                                                </td>
+                                                <td class="text-end">
+                                                    <t t-if="sale_proposal.state in ['send']">
+                                                        <input type="number" inputmode="numeric" id="sales_proposal_price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
+                                                    </t>
+                                                    <t t-else="">
+                                                        <span t-out ="line.price_unit" />
+                                                    </t>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div >
+                                                        <p id="price_subtotel" t-att-data-order-id="line.id" t-field ="line.price_subtotal" />
+                                                    </div>
+                                                </td>
+                                            </t>
+                                            <t t-else="">
+                                                <td colspan="99">
+                                                </td>
+                                            </t>
+                                        </tr>
+                                    </t>
                                 </t>
                                 <tr class="is-subtotal text-end">
                                     <td colspan="99">
