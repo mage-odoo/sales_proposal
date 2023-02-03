@@ -110,14 +110,16 @@ class CustomerPortal(portal.CustomerPortal):
             if data['field'] in ['product_uom_qty', 'price_unit']:
                 order_line_sudo = proposal_sudo.proposal_line_ids.filtered(
                     lambda lines: lines.id == int(data['line_id']))
-                if (data['field'] == 'product_uom_qty' and int(data['value']) == 0):
-                    data['value'] = 1
+                data['value'] = 1 if (data['field'] == 'product_uom_qty' and int(
+                    data['value']) <= 0) else data['value']
+                data['value'] = 0 if (data['field'] == 'price_unit' and int(
+                    data['value']) < 0) else data['value']
                 order_line_sudo.write(
                     {data['field']: float(ceil(data['value']))})
         except (AccessError, MissingError):
             print("Missing or AccessError on /my/proposal/%s/update" % (order_id))
 
-    @http.route(['/my/proposal/<int:order_id>/reject'], type='http', auth="public", website=True)
+    @ http.route(['/my/proposal/<int:order_id>/reject'], type='http', auth="public", website=True)
     def portal_reject_page(self, order_id, access_token=None, name=None):
         print("reject method called")
         access_token = access_token or request.httprequest.args.get(

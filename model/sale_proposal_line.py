@@ -108,6 +108,9 @@ class SaleProposalLine(models.Model):
     @ api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id')
     def _compute_amount(self):
         for line in self:
+            line.product_uom_qty = line.product_uom_qty if line.product_uom_qty > 0 else 1
+            line.discount = line.discount if line.discount >= 0 else 0
+            line.price_unit = line.price_unit if line.price_unit >= 0 else 0
             if line.discount > 100:
                 line.discount = 100
             tax_results = self.env['account.tax']._compute_taxes(

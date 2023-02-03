@@ -23,9 +23,9 @@ publicWidget.registry.SaleProposal = publicWidget.Widget.extend({
         'access_token': access_token,
         'proposal_id':$proposal_id 
       };
-      self._updateElement("qty", dict);
+      self._updateElement(dict);
   },
-    _updateElement: function (perameter,dict) {
+    _updateElement: function (dict) {
       var done=ajax.jsonRpc('/my/proposal/'+dict['proposal_id']+'/update', 'call', {'data': dict, 'access_token':dict['access_token']});
         done.then(setTimeout(function(){ location.reload(); }, 200))
     },
