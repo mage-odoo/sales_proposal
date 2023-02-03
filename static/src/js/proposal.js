@@ -14,12 +14,14 @@ publicWidget.registry.SaleProposal = publicWidget.Widget.extend({
     var $updatedQty = parseFloat($target.val());
     var $line_id = $target.attr('data-order-id');
     var $proposal_id = $target.attr('proposal-id');
-    var $field = $target.attr('updatefield');
+    var $fieldname = $target.attr('updatefield');
+    var $OldValField = $target.attr('old-value');
     const access_token = new URLSearchParams(window.location.search).get('access_token');
     var dict = {
         'line_id': $line_id,
-        'field': $field,
+        'field': $fieldname,
         'value': $updatedQty,
+        'oldvalue':$OldValField,
         'access_token': access_token,
         'proposal_id':$proposal_id 
       };

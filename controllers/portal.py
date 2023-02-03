@@ -13,6 +13,21 @@ from odoo.addons.portal.controllers.portal import pager as portal_pager
 
 class CustomerPortal(portal.CustomerPortal):
 
+    def _prepare_proposal_domain(self, partner):
+        return [
+            ('message_partner_ids', 'child_of',
+             [partner.commercial_partner_id.id]),
+            ('state', 'in', ['send'])
+        ]
+
+    def _get_sale_proposal_searchbar_sortings(self):
+        return {
+            'date': {'label': _('Order Date'), 'order': 'date_order desc'},
+            'name': {'label': _('Reference'), 'order': 'name'},
+            'stage': {'label': _('amount_total'), 'order': 'amount_total desc'},
+        }
+
+    # my/home portal prepare value for sale proposal
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         partner = request.env.user.partner_id
@@ -29,7 +44,6 @@ class CustomerPortal(portal.CustomerPortal):
         if not sortby:
             sortby = 'date'
         partner = request.env.user.partner_id
-        values = self._prepare_portal_layout_values()  # don't know
         if proposal_page:
             url = "/my/proposal"
             domain = self._prepare_proposal_domain(partner)
@@ -46,39 +60,25 @@ class CustomerPortal(portal.CustomerPortal):
             url_args={'date_begin': date_begin,
                       'date_end': date_end, 'sortby': sortby},
         )
-        orders = SaleProposal.search(
+        proposals = SaleProposal.search(
             domain, order=sort_proposal, limit=self._items_per_page, offset=pager_values['offset'])
-        values.update({
+        values = ({
             'date': date_begin,
-            'proposals': orders.sudo() if proposal_page else SaleProposal,
-            'orders': orders.sudo() if not proposal_page else SaleProposal,
+            'proposals': proposals.sudo() if proposal_page else SaleProposal,
             'page_name': 'proposal',
             'pager': pager_values,
             'default_url': url,
             'searchbar_sortings': searchbar_sortings,
             'sortby': sortby,
         })
+        print(values)
         return values
-
-    def _prepare_proposal_domain(self, partner):
-        return [
-            ('message_partner_ids', 'child_of', [
-                partner.commercial_partner_id.id]),
-            ('state', 'in', ['send'])
-        ]
 
     @http.route(['/my/proposal', '/my/proposal/page/<int:page>'], type='http', auth="user", website=True)
     def portal_my_proposal(self, **kwargs):
         values = self._prepare_sale_proposal_portal_rendering_values(
             proposal_page=True, **kwargs)
         return request.render("sales_proposal.portal_my_proposals", values)
-
-    def _get_sale_proposal_searchbar_sortings(self):
-        return {
-            'date': {'label': _('Order Date'), 'order': 'date_order desc'},
-            'name': {'label': _('Reference'), 'order': 'name'},
-            'stage': {'label': _('Stage'), 'order': 'state'},
-        }
 
     @http.route(['/my/proposal/<int:order_id>'], type='http', auth="public", website=True)
     def portal_proposal_page(self, order_id, report_type=None, access_token=None, message=False, download=False, **kw):
@@ -116,6 +116,17 @@ class CustomerPortal(portal.CustomerPortal):
                     data['value']) < 0) else data['value']
                 order_line_sudo.write(
                     {data['field']: float(ceil(data['value']))})
+            field_name = ' Quantity ' if data['field'] == 'product_uom_qty' else ' Unit Price '
+            body = f'''
+            <div class = 'o_TrackingValue d-flex align-items-center flex-wrap mb-1' role = 'group'>
+            <span class = 'o_TrackingValue_oldValue me-1 px-1 text-muted fw-bold'> {data['oldvalue']}
+            <i class = 'o_TrackingValue_separator fa fa-long-arrow-right mx-1 text-600' title = 'Changed' role = 'img' aria-label = 'Changed'></i >
+            <span value="" class = 'o_TrackingValue_newValue me-1 fw-bold text-info'> {float(data['value'])} 
+            <span class = 'o_TrackingValue_fieldName ms-1 fst-italic text-muted'> ({field_name})
+            </div>
+            '''
+            proposal_sudo.message_post(
+                body=body)
         except (AccessError, MissingError):
             print("Missing or AccessError on /my/proposal/%s/update" % (order_id))
 

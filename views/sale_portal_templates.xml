@@ -1,16 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- outer call link -->
-    <template id="portal_my_home_menu_sale_proposal" name="Portal layout : sales menu entries" inherit_id="portal.portal_breadcrumbs" priority="10">
-        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
-            <li t-if="page_name == 'proposal' or sale_proposal and sale_proposal.state in ('send', 'confirm','draft')" t-attf-class="breadcrumb-item #{'active ' if not sale_proposal else ''}">
-                <a t-if="sale_proposal" t-attf-href="/my/proposal?{{ keep_query() }}">Proposal</a>
-            </li>
-        </xpath>
-    </template>
 
     <!-- innner link  full cantrol on /my/home-->
-    <template id="portal_my_home_sale_proposal" name="Show proposals / Sales Orders" customize_show="True" inherit_id="portal.portal_my_home" priority="10">
+    <template id="portal_my_home_sale_proposal" name="Show proposals" customize_show="True" inherit_id="portal.portal_my_home" priority="10">
         <xpath expr="//div[hasclass('o_portal_docs')]/div" position="before">
             <t t-call="portal.portal_docs_entry">
                 <t t-set="title">Proposal</t>
@@ -20,11 +12,25 @@
         </xpath>
     </template>
 
+    <!-- portal submenu for go to back page link /my/proposal-->
+    <template id="portal_my_home_menu_sale_proposal" name="Portal layout : sales menu entries" inherit_id="portal.portal_breadcrumbs" priority="10">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'proposal' or sale_proposal and sale_proposal.state in ('send', 'confirm','draft')" t-attf-class="breadcrumb-item #{'active ' if not sale_proposal else ''}">
+                <a t-if="sale_proposal" t-attf-href="/my/proposal?{{ keep_query() }}">Proposal</a>
+            </li>
+            <li t-if="sale_proposal" t-attf-class="breadcrumb-item active">
+                <a>
+                    <t t-out="sale_proposal.name" />
+                </a>
+            </li>
+        </xpath>
+    </template>
+
     <template id="portal_my_proposals" name="My Proposal">
         <t t-call="portal.portal_layout">
             <t t-set="breadcrumbs_searchbar" t-value="True" />
             <t t-call="portal.portal_searchbar">
-                <t t-set="title">Proposal</t>
+                <t t-set="title">Proposals</t>
             </t>
             <t t-if="proposals" t-call="portal.portal_table">
                 <thead>
@@ -112,6 +118,7 @@
                     </t>
                 </t>
 
+                <!-- execute when accept proposal -->
                 <div role="dialog" class="modal fade" id="modalaccept">
                     <div class="modal-dialog" t-if="sale_proposal.state">
                         <form id="accept" method="POST" t-att-data-order-id="sale_proposal.id" t-att-data-token="sale_proposal.access_token" class="js_accept_json modal-content js_website_submit_form">
@@ -142,6 +149,7 @@
                         </form>
                     </div>
                 </div>
+
 
                 <div t-attf-class="col-12 col-lg justify-content-end" id="portal_proposal_content">
                     <div>
@@ -205,7 +213,7 @@
             <!-- Intro -->
             <div id="introduction" class="pb-2 pt-3 card-header bg-white">
                 <h2 class="my-0 ">
-                    Proposal <em t-out="sale_proposal.name" />
+                    <em t-out="sale_proposal.name" />
                 </h2>
             </div>
             <div t-attf-class="#{'card-body' if report_type == 'html' else ''}">
@@ -257,7 +265,7 @@
                                             <t t-if="not line.display_type">
                                                 <td class="text-end">
                                                     <t t-if="sale_proposal.state in ['send']">
-                                                        <input type="number" inputmode="numeric" id="update_val" updatefield="product_uom_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
+                                                        <input type="number" inputmode="numeric" id="update_val" updatefield="product_uom_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" t-att-old-value="line.product_uom_qty" class="fa text-end o_input" />
                                                     </t>
                                                     <t t-else="">
                                                         <span t-out ="line.product_uom_qty" />
@@ -265,7 +273,7 @@
                                                 </td>
                                                 <td class="text-end">
                                                     <t t-if="sale_proposal.state in ['send']">
-                                                        <input type="number" inputmode="numeric" id="update_val" updatefield="price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
+                                                        <input type="number" inputmode="numeric" id="update_val" updatefield="price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" t-att-old-value="line.price_unit" class="fa text-end o_input" />
                                                     </t>
                                                     <t t-else="">
                                                         <span t-out ="line.price_unit" />

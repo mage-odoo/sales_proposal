@@ -14,7 +14,7 @@
             <div class="page">
                 <div class="oe_structure" />
                 <h2 class="mt-4">
-                    <span t-if="doc.state in ['draft','send','confirm']">Proposal # </span>
+                    <span t-if="doc.state in ['draft','send','confirm']"></span>
                     <span t-out="doc.name" />
                 </h2>
                 <div class="row mt-4 mb-4" id="informations">

@@ -33,13 +33,14 @@ class SaleProposalLine(models.Model):
         compute='_compute_price_unit',
         store=True,
         required=True,
-        readonly=False)
+        readonly=False, tracking=True)
     product_uom_qty = fields.Float(
         'Quantity',
         default="1.0",
         required=True,
         compute="_compute_product_uom_qty",
-        store=True, readonly=False)
+        store=True, readonly=False,
+        tracking=True)
     tax_id = fields.Many2many(
         comodel_name='account.tax',
         string="Taxes",
