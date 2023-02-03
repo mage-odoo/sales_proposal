@@ -243,7 +243,6 @@
                                     </th>
                                     <th class="text-end">
                                         <span groups="account.group_show_line_subtotals_tax_excluded">Amount</span>
-                                        <span groups="account.group_show_line_subtotals_tax_included">Total Price</span>
                                     </th>
                                 </tr>
                             </thead>
@@ -258,7 +257,7 @@
                                             <t t-if="not line.display_type">
                                                 <td class="text-end">
                                                     <t t-if="sale_proposal.state in ['send']">
-                                                        <input type="number" inputmode="numeric" id="sales_proposal_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
+                                                        <input type="number" inputmode="numeric" id="update_val" updatefield="product_uom_qty" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.product_uom_qty" class="fa text-end o_input" />
                                                     </t>
                                                     <t t-else="">
                                                         <span t-out ="line.product_uom_qty" />
@@ -266,7 +265,7 @@
                                                 </td>
                                                 <td class="text-end">
                                                     <t t-if="sale_proposal.state in ['send']">
-                                                        <input type="number" inputmode="numeric" id="sales_proposal_price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
+                                                        <input type="number" inputmode="numeric" id="update_val" updatefield="price_unit" t-att-proposal-id="sale_proposal.id" t-att-data-order-id="line.id" t-att-value="line.price_unit" class="fa text-end o_input" />
                                                     </t>
                                                     <t t-else="">
                                                         <span t-out ="line.price_unit" />
